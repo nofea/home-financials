@@ -71,6 +71,6 @@
 
 **REQ-16**: The application must make provision to display stored data in a Terminal
 
-**REQ-17**: The application must make provision to display stored data in a GUI with good ux.
+**REQ-17**: The application must make provision to display stored data in a GUI with good UX.
 
 **REQ-18**: The application must provide filters on the displayed data, i.e., Weekly/Monthly/Annually data, individual members in a Family, individual families, filter by bank, filter by account number
