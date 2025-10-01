@@ -5,6 +5,8 @@
 | Acronym | Full Description                    |
 ----------|-------------------------------------|
 | SRS     | Software Requirements Specification |
+| GUI     | Graphical User Interface            |
+| UX      | User Experience                     |
 
 ## References
 
