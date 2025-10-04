@@ -1,0 +1,83 @@
+#include "family.hpp"
+#include <algorithm>
+
+/**
+ * @brief Construct a new Family:: Family object
+ * 
+ */
+Family::Family() 
+{
+    // TODO: Initialize members
+}
+
+/**
+ * @brief Construct a new Family:: Family object
+ * 
+ * @param name Name of the family
+ */
+Family::Family(const std::string& name)
+    : family_name(name) 
+{
+
+}
+
+/**
+ * @brief Destroy the Family:: Family object
+ * 
+ */
+Family::~Family() 
+{
+    // TODO: Cleanup resources
+}
+
+/**
+ * @brief Adds a member to the family.
+ * 
+ * @param member The member to be added.
+ */
+void Family::addMember(const Member& member) 
+{
+    members.push_back(member);
+}
+
+/**
+ * @brief Removes a member from the family.
+ * 
+ * @param member_id The ID of the member to be removed.
+ * @return true if the member was removed successfully.
+ * @return false if the member could not be found.
+ */
+bool Family::removeMember(const uint64_t& member_id) 
+{
+    auto it = std::remove_if(members.begin(), members.end(), [&](const Members& member) {
+        return member.getId() == member_id;
+    });
+
+    if (it != members.end()) 
+    {
+        members.erase(it, members.end());
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @brief Retrieves a member by their ID.
+ * 
+ * @param member_id The ID of the member to retrieve.
+ * @return Members* Pointer to the member if found, nullptr otherwise.
+ */
+Member* Family::getMember(const uint64_t& member_id) 
+{
+    auto it = std::find_if(members.begin(), members.end(), [&](const Members& member) {
+        return member.getId() == member_id;
+    });
+
+    if (it != members.end()) 
+    {
+        return &(*it);
+    }
+
+    return nullptr;
+}
