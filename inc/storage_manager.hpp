@@ -28,10 +28,10 @@ public:
 
 private:
     // Owned SQLite connection handle (nullptr when not connected)
-    sqlite3* db_handle_{nullptr};
+    sqlite3* db_handle{nullptr};
 
     // Whether `connect` has been successfully called and a valid handle is present
-    bool connected_{false};
+    bool connected{false};
 
     // Connect to the database
     bool connect(const std::string& connectionString);
