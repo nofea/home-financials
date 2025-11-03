@@ -6,8 +6,14 @@
 #include <vector>
 #include <sqlite3.h>
 
-// Database initialization is handled by StorageManager::runDbInitScript().
-
+/**
+ * @brief Main entry point for the Home Financials application.
+ * 
+ * This function initializes the storage manager, creates a family,
+ * and adds a member to that family in the database.
+ * 
+ * @return int Exit code of the application.
+ */
 int main()
 {
     StorageManager storageManager;

@@ -7,19 +7,30 @@
 
 #include <sqlite3.h>
 
-// Constructor
+/**
+ * @brief Construct a new Storage Manager:: Storage Manager object
+ */
 StorageManager::StorageManager() 
 {
     // TODO: Initialize storage manager
 }
 
-// Destructor
+/**
+ * @brief Destroy the Storage Manager:: Storage Manager object
+ */
 StorageManager::~StorageManager() 
 {
     // Ensure DB handle is closed on destruction
     disconnect();
 }
 
+/**
+ * @brief Initialize the database at the given path.
+ * 
+ * @param dbPath Path to the database file.
+ * @return true If initialization was successful.
+ * @return false If initialization failed.
+ */
 bool StorageManager::initializeDatabase(const std::string& dbPath) 
 {
     // Determine database path. If caller provided a path (non-empty and not the
@@ -30,6 +41,7 @@ bool StorageManager::initializeDatabase(const std::string& dbPath)
     {
         namespace fs = std::filesystem;
         fs::path projectRoot;
+
         try 
         {
             fs::path exe = fs::read_symlink("/proc/self/exe");
@@ -47,19 +59,18 @@ bool StorageManager::initializeDatabase(const std::string& dbPath)
     }
 
     // Ensure tables exist at the chosen path
-    runDbInitScript(chosenPath);
+    dbInit(chosenPath);
 
     // Try to connect to the database
     return connect(chosenPath);
 }
 
-// Run the Python DB init script from the project root and ensure the database
-// file is created there. This mirrors the previous free function but lives
-// on the StorageManager class. We consider the project root to be either
-// the executable parent->parent (common when binary is in build/bin) or the
-// current working directory. We pass the intended DB path to the Python
-// script so it will create the DB at project_root/homefinancials.db.
-void StorageManager::runDbInitScript(const std::string& dbPathStr)
+/**
+ * @brief Initialize DB file and tables at the provided path.
+ * 
+ * @param dbPathStr Path to the database file.
+ */
+void StorageManager::dbInit(const std::string& dbPathStr)
 {
     namespace fs = std::filesystem;
     fs::path dbPath = fs::path(dbPathStr);
@@ -140,6 +151,14 @@ void StorageManager::runDbInitScript(const std::string& dbPathStr)
     sqlite3_close(db);
 }
 
+/**
+ * @brief Save member data to the database.
+ * 
+ * @param member Member to save.
+ * @param family_id ID of the family the member belongs to.
+ * @return true if save was successful.
+ * @return false if save failed.
+ */
 bool StorageManager::saveMemberData(const Member& member, const uint64_t family_id) 
 {
     // Ensure DB is ready
@@ -202,6 +221,13 @@ bool StorageManager::saveMemberData(const Member& member, const uint64_t family_
     return true;
 }
 
+/**
+ * @brief Save family data to the database.
+ * 
+ * @param family family
+ * @return true if save was successful.
+ * @return false if save failed.
+ */
 bool StorageManager::saveFamilyData(const Family& family) 
 {
     if (!connected) 
@@ -276,6 +302,12 @@ bool StorageManager::saveFamilyData(const Family& family)
     return true;
 }
 
+/**
+ * @brief Get member data by ID.
+ * 
+ * @param member_id Member ID to retrieve.
+ * @return Member* 
+ */
 Member* StorageManager::getMemberData(const uint64_t& member_id) 
 {
     if (!connected) 
@@ -315,6 +347,12 @@ Member* StorageManager::getMemberData(const uint64_t& member_id)
     return nullptr;
 }
 
+/**
+ * @brief Get family data by ID.
+ * 
+ * @param family_id ID of the family to retrieve.
+ * @return Family* 
+ */
 Family* StorageManager::getFamilyData(const uint64_t& family_id) 
 {
     if (!connected) 
@@ -375,6 +413,13 @@ Family* StorageManager::getFamilyData(const uint64_t& family_id)
     return family;
 }
 
+/**
+ * @brief Delete member data by ID.
+ * 
+ * @param member_id ID of the member to delete.
+ * @return true if deletion was successful.
+ * @return false if deletion failed.
+ */
 bool StorageManager::deleteMemberData(const uint64_t& member_id) 
 {
     if (!connected) 
@@ -403,6 +448,13 @@ bool StorageManager::deleteMemberData(const uint64_t& member_id)
     return success;
 }
 
+/**
+ * @brief Delete family data by ID.
+ * 
+ * @param family_id ID of the family to delete.
+ * @return true 
+ * @return false 
+ */
 bool StorageManager::deleteFamilyData(const uint64_t& family_id) 
 {
     if (!connected) 
@@ -431,7 +483,13 @@ bool StorageManager::deleteFamilyData(const uint64_t& family_id)
     return success;
 }
 
-// Connect to the database
+/**
+ * @brief Connect to the database.
+ * 
+ * @param connectionString SQLite database file path.
+ * @return true if connection was successful.
+ * @return false if connection failed.
+ */
 bool StorageManager::connect(const std::string& connectionString) 
 {
     // If already connected and same path, return true. If different path, close and reopen.
@@ -472,7 +530,10 @@ bool StorageManager::connect(const std::string& connectionString)
     return true;
 }
 
-// Disconnect from the database
+/**
+ * @brief Disconnect from the database.
+ * 
+ */
 void StorageManager::disconnect() 
 {
     if (db_handle) 
@@ -480,6 +541,6 @@ void StorageManager::disconnect()
         sqlite3_close(db_handle);
         db_handle = nullptr;
     }
-    
+
     connected = false;
 }

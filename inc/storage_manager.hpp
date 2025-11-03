@@ -40,5 +40,5 @@ private:
     void disconnect();
 
     // Ensure DB file and tables exist at the provided path
-    void runDbInitScript(const std::string& dbPath);
+    void dbInit(const std::string& dbPath);
 };
