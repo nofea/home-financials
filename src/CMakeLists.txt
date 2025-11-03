@@ -5,6 +5,7 @@ set(LIB_SRC
     family.cpp
     member.cpp
     storage_manager.cpp
+    home_manager.cpp
 )
 
 add_library(home_financials_lib STATIC ${LIB_SRC})
