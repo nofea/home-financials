@@ -320,16 +320,33 @@ TEST_F(StorageManagerTest, ExtendedAPIsUpdateOperations)
     ASSERT_NE(updated_family, nullptr);
     EXPECT_EQ(updated_family->getName(), "Updated Family");
 
-    // Test member update validations
-    EXPECT_EQ(sm->updateMemberDataEx(member_id, "", "New Nick"), StorageManager::Result::InvalidInput);
+    // Test member update validations - full update
     EXPECT_EQ(sm->updateMemberDataEx(999, "New Name", "New Nick"), StorageManager::Result::NotFound);
     EXPECT_EQ(sm->updateMemberDataEx(member_id, "Updated Name", "Updated Nick"), StorageManager::Result::Ok);
 
-    // Verify member update
+    // Verify full member update
     std::unique_ptr<Member> updated_member(sm->getMemberData(member_id));
     ASSERT_NE(updated_member, nullptr);
     EXPECT_EQ(updated_member->getName(), "Updated Name");
     EXPECT_EQ(updated_member->getNickname(), "Updated Nick");
+
+    // Test member partial updates
+    // Update only nickname
+    EXPECT_EQ(sm->updateMemberDataEx(member_id, "", "New Nickname Only"), StorageManager::Result::Ok);
+    updated_member.reset(sm->getMemberData(member_id));
+    ASSERT_NE(updated_member, nullptr);
+    EXPECT_EQ(updated_member->getName(), "Updated Name");  // Name unchanged
+    EXPECT_EQ(updated_member->getNickname(), "New Nickname Only");
+
+    // Update only name
+    EXPECT_EQ(sm->updateMemberDataEx(member_id, "New Name Only", ""), StorageManager::Result::Ok);
+    updated_member.reset(sm->getMemberData(member_id));
+    ASSERT_NE(updated_member, nullptr);
+    EXPECT_EQ(updated_member->getName(), "New Name Only");
+    EXPECT_EQ(updated_member->getNickname(), "New Nickname Only");  // Nickname unchanged
+
+    // Try to update with no fields (should fail)
+    EXPECT_EQ(sm->updateMemberDataEx(member_id, "", ""), StorageManager::Result::InvalidInput);
 }
 
 TEST_F(StorageManagerTest, ExtendedAPIsDeleteOperations) 

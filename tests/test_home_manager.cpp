@@ -143,9 +143,24 @@ TEST_F(HomeManagerTest, UpdateMember)
     EXPECT_EQ(updated->getName(), "Updated Name");
     EXPECT_EQ(updated->getNickname(), "UN");
 
-    // Try invalid updates
-    EXPECT_EQ(hm->updateMember(1, "", "Nick"), StorageManager::Result::InvalidInput);
+    // Test partial updates
+    EXPECT_EQ(hm->updateMember(1, "", "UpdatedNick"), StorageManager::Result::Ok); // Only nickname update
+    auto nickUpdated = hm->getMember(1);
+    ASSERT_NE(nickUpdated, nullptr);
+    EXPECT_EQ(nickUpdated->getName(), "Updated Name"); // Name should remain unchanged
+    EXPECT_EQ(nickUpdated->getNickname(), "UpdatedNick");
+
+    EXPECT_EQ(hm->updateMember(1, "FinalName", ""), StorageManager::Result::Ok); // Only name update
+    auto nameUpdated = hm->getMember(1);
+    ASSERT_NE(nameUpdated, nullptr);
+    EXPECT_EQ(nameUpdated->getName(), "FinalName");
+    EXPECT_EQ(nameUpdated->getNickname(), "UpdatedNick"); // Nickname should remain unchanged
+
+    // Test invalid updates - member not found
     EXPECT_EQ(hm->updateMember(999, "Name", "Nick"), StorageManager::Result::NotFound);
+
+    // Test invalid updates - no fields to update
+    EXPECT_EQ(hm->updateMember(1, "", ""), StorageManager::Result::InvalidInput);
 }
 
 TEST_F(HomeManagerTest, DeleteMember)
