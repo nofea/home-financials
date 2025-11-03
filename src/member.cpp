@@ -3,15 +3,6 @@
 /**
  * @brief Construct a new Member:: Member object
  * 
- */
-Member::Member() 
-{
-    // TODO: Initialize member variables
-}
-
-/**
- * @brief Construct a new Member:: Member object
- * 
  * @param id member ID
  * @param name member name
  * @param nickname member nickname

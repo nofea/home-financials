@@ -4,15 +4,6 @@
 /**
  * @brief Construct a new Family:: Family object
  * 
- */
-Family::Family() 
-{
-    // TODO: Initialize members
-}
-
-/**
- * @brief Construct a new Family:: Family object
- * 
  * @param name Name of the family
  */
 Family::Family(const std::string& name)
@@ -49,7 +40,7 @@ void Family::addMember(const Member& member)
  */
 bool Family::removeMember(const uint64_t& member_id) 
 {
-    auto it = std::remove_if(members.begin(), members.end(), [&](const Members& member) {
+    auto it = std::remove_if(members.begin(), members.end(), [&](const Member& member) {
         return member.getId() == member_id;
     });
 
@@ -70,7 +61,7 @@ bool Family::removeMember(const uint64_t& member_id)
  */
 Member* Family::getMember(const uint64_t& member_id) 
 {
-    auto it = std::find_if(members.begin(), members.end(), [&](const Members& member) {
+    auto it = std::find_if(members.begin(), members.end(), [&](const Member& member) {
         return member.getId() == member_id;
     });
 

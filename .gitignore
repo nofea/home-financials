@@ -1,2 +1,5 @@
 # Ignore the following for git operations
 .vscode/
+build/
+*.db
+Testing/

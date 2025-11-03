@@ -1,14 +1,14 @@
 #pragma once
 
 #include "commons.hpp"
-#include "members.hpp"
+#include "member.hpp"
 
 class Family
 {
 private:
     uint64_t family_id;
     std::string family_name;
-    std::vector<Members> members;
+    std::vector<Member> members;
 
     Family() = delete; // Prevent default constructor
 
@@ -17,7 +17,7 @@ public:
     virtual ~Family();
 
     // Add a member to the family
-    void addMember(const Members& member);
+    void addMember(const Member& member);
     // Remove a member from the family by ID
     bool removeMember(const uint64_t& member_id);
 
@@ -25,8 +25,8 @@ public:
 
     std::string getName() const;
 
-    std::vector<Members> getMembers() const;
+    std::vector<Member> getMembers() const;
 
     // Get a member by ID
-    Members* getMember(const uint64_t& member_id);
+    Member* getMember(const uint64_t& member_id);
 };
