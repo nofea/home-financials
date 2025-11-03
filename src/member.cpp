@@ -16,8 +16,8 @@ Member::Member()
  * @param name member name
  * @param nickname member nickname
  */
-Member::Member(const uint64_t& id, const std::string& name, const std::string& nickname)
-    : member_id(id), member_name(name), member_nickname(nickname) 
+Member::Member(const std::string& name, const std::string& nickname)
+    : member_name(name), member_nickname(nickname) 
 {
 
 }

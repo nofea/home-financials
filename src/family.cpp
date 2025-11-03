@@ -81,3 +81,32 @@ Member* Family::getMember(const uint64_t& member_id)
 
     return nullptr;
 }
+
+/**
+ * @brief Get the ID of the family.
+ * 
+ * @return uint64_t 
+ */
+uint64_t Family::getId() const 
+{
+    return family_id;
+}
+
+/**
+ * @brief Get the name of the family.
+ * 
+ * @return std::string 
+ */
+std::string Family::getName() const 
+{
+    return family_name;
+}
+/**
+ * @brief Get the members of the family.
+ * 
+ * @return std::vector<Members> 
+ */
+std::vector<Member> Family::getMembers() const 
+{
+    return members;
+}

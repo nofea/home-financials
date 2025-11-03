@@ -12,7 +12,7 @@ private:
     Member() = delete; // Prevent default constructor
     
 public:
-    Member(const uint64_t& id, const std::string& name, const std::string& nickname="");
+    Member(const std::string& name, const std::string& nickname="");
     virtual ~Member();
 
     uint64_t getId() const;
