@@ -161,64 +161,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
  */
 bool StorageManager::saveMemberData(const Member& member, const uint64_t family_id) 
 {
-    // Ensure DB is ready
-    if (!connected) 
-    {
-        if (!initializeDatabase("")) return false;
-    }
-
-    // First verify the family exists
-    const char* check_sql = "SELECT 1 FROM FamilyInfo WHERE Family_ID = ?;";
-    sqlite3_stmt* check_stmt = nullptr;
-    int ret_code = sqlite3_prepare_v2(db_handle, check_sql, -1, &check_stmt, nullptr);
-    if (ret_code != SQLITE_OK) 
-    {
-        std::cerr << "Failed to prepare family check statement: " << sqlite3_errmsg(db_handle) << std::endl;
-        return false;
-    }
-
-    sqlite3_bind_int64(check_stmt, 1, static_cast<sqlite3_int64>(family_id));
-    ret_code = sqlite3_step(check_stmt);
-    sqlite3_finalize(check_stmt);
-
-    if (ret_code != SQLITE_ROW) 
-    {
-        std::cerr << "Cannot add member: Family with ID " << family_id << " does not exist" << std::endl;
-        return false;
-    }
-
-    const char* sql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
-    sqlite3_stmt* stmt = nullptr;
-    ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
-
-    if (ret_code != SQLITE_OK) 
-    {
-        std::cerr << "Failed to prepare insert member statement: " << sqlite3_errmsg(db_handle) << std::endl;
-        return false;
-    }
-
-    ret_code = sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
-    ret_code |= sqlite3_bind_text(stmt, 2, member.getName().c_str(), -1, SQLITE_TRANSIENT);
-    ret_code |= sqlite3_bind_text(stmt, 3, member.getNickname().c_str(), -1, SQLITE_TRANSIENT);
-
-    if (ret_code != SQLITE_OK) 
-    {
-        std::cerr << "Failed to bind insert member values: " << sqlite3_errmsg(db_handle) << std::endl;
-        sqlite3_finalize(stmt);
-        return false;
-    }
-
-    ret_code = sqlite3_step(stmt);
-
-    if (ret_code != SQLITE_DONE) 
-    {
-        std::cerr << "Failed to execute insert member: " << sqlite3_errmsg(db_handle) << std::endl;
-        sqlite3_finalize(stmt);
-        return false;
-    }
-
-    sqlite3_finalize(stmt);
-    return true;
+    return saveMemberDataEx(member, family_id, nullptr) == Result::Ok;
 }
 
 /**
@@ -230,76 +173,7 @@ bool StorageManager::saveMemberData(const Member& member, const uint64_t family_
  */
 bool StorageManager::saveFamilyData(const Family& family) 
 {
-    if (!connected) 
-    {
-        if (!initializeDatabase(""))
-        {
-            return false;
-        } 
-    }
-
-    const char* sql = "INSERT INTO FamilyInfo (Family_Name) VALUES (?);";
-    sqlite3_stmt* stmt = nullptr;
-
-    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
-
-    if (ret_code != SQLITE_OK) 
-    {
-        std::cerr << "Failed to prepare insert family statement: " << sqlite3_errmsg(db_handle) << std::endl;
-        return false;
-    }
-
-    ret_code = sqlite3_bind_text(stmt, 1, family.getName().c_str(), -1, SQLITE_TRANSIENT);
-
-    if (ret_code != SQLITE_OK) 
-    {
-        std::cerr << "Failed to bind insert family values: " << sqlite3_errmsg(db_handle) << std::endl;
-        sqlite3_finalize(stmt);
-        return false;
-    }
-
-    ret_code = sqlite3_step(stmt);
-
-    if (ret_code != SQLITE_DONE) 
-    {
-        std::cerr << "Failed to execute insert family: " << sqlite3_errmsg(db_handle) << std::endl;
-        sqlite3_finalize(stmt);
-        return false;
-    }
-
-    // Optionally insert members if provided
-    sqlite3_finalize(stmt);
-    sqlite3_int64 family_id = sqlite3_last_insert_rowid(db_handle);
-
-    auto members = family.getMembers();
-
-    for (const auto &m : members) 
-    {
-        const char* msql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
-        sqlite3_stmt* mstmt = nullptr;
-        ret_code = sqlite3_prepare_v2(db_handle, msql, -1, &mstmt, nullptr);
-
-        if (ret_code != SQLITE_OK) 
-        {
-            std::cerr << "Failed to prepare insert member for family: " << sqlite3_errmsg(db_handle) << std::endl;
-            continue;
-        }
-
-        sqlite3_bind_int64(mstmt, 1, family_id);
-        sqlite3_bind_text(mstmt, 2, m.getName().c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(mstmt, 3, m.getNickname().c_str(), -1, SQLITE_TRANSIENT);
-
-        ret_code = sqlite3_step(mstmt);
-
-        if (ret_code != SQLITE_DONE) 
-        {
-            std::cerr << "Failed to insert member for family: " << sqlite3_errmsg(db_handle) << std::endl;
-        }
-
-        sqlite3_finalize(mstmt);
-    }
-
-    return true;
+    return saveFamilyDataEx(family, nullptr) == Result::Ok;
 }
 
 /**
@@ -481,6 +355,251 @@ bool StorageManager::deleteFamilyData(const uint64_t& family_id)
     sqlite3_finalize(stmt);
 
     return success;
+}
+
+bool StorageManager::updateFamilyData(const uint64_t& family_id, const std::string& new_name)
+{
+    if (!connected) 
+    {
+        if (!initializeDatabase("")) 
+        {
+            return false;
+        }
+    }
+
+    const char* sql = "UPDATE FamilyInfo SET Family_Name = ? WHERE Family_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+
+    if (ret_code != SQLITE_OK) 
+    {
+        std::cerr << "Failed to prepare update family: " << sqlite3_errmsg(db_handle) << std::endl;
+        return false;
+    }
+
+    sqlite3_bind_text(stmt, 1, new_name.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(family_id));
+    ret_code = sqlite3_step(stmt);
+    bool success = (ret_code == SQLITE_DONE && sqlite3_changes(db_handle) > 0);
+    sqlite3_finalize(stmt);
+
+    return success;
+}
+
+bool StorageManager::updateMemberData(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname)
+{
+    if (!connected) {
+        if (!initializeDatabase("")) {
+            return false;
+        }
+    }
+
+    const char* sql = "UPDATE MemberInfo SET Member_Name = ?, Member_Nick_Name = ? WHERE Member_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK) {
+        std::cerr << "Failed to prepare update member: " << sqlite3_errmsg(db_handle) << std::endl;
+        return false;
+    }
+    sqlite3_bind_text(stmt, 1, new_name.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, new_nickname.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(member_id));
+    ret_code = sqlite3_step(stmt);
+    bool success = (ret_code == SQLITE_DONE && sqlite3_changes(db_handle) > 0);
+    sqlite3_finalize(stmt);
+    return success;
+}
+
+// Extended APIs returning Result codes
+
+StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, uint64_t* out_family_id)
+{
+    if (family.getName().empty()) {
+        return Result::InvalidInput;
+    }
+
+    if (!connected) {
+        if (!initializeDatabase("")) return Result::DbError;
+    }
+
+    const char* sql = "INSERT INTO FamilyInfo (Family_Name) VALUES (?);";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+        return Result::DbError;
+    }
+
+    rc = sqlite3_bind_text(stmt, 1, family.getName().c_str(), -1, SQLITE_TRANSIENT);
+    if (rc != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    sqlite3_finalize(stmt);
+    sqlite3_int64 family_id = sqlite3_last_insert_rowid(db_handle);
+
+    // Insert members if any
+    auto members = family.getMembers();
+    for (const auto &m : members) {
+        const char* msql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
+        sqlite3_stmt* mstmt = nullptr;
+        rc = sqlite3_prepare_v2(db_handle, msql, -1, &mstmt, nullptr);
+        if (rc != SQLITE_OK) {
+            // continue inserting others but mark DB error
+            sqlite3_finalize(mstmt);
+            continue;
+        }
+        sqlite3_bind_int64(mstmt, 1, family_id);
+        sqlite3_bind_text(mstmt, 2, m.getName().c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(mstmt, 3, m.getNickname().c_str(), -1, SQLITE_TRANSIENT);
+        rc = sqlite3_step(mstmt);
+        sqlite3_finalize(mstmt);
+    }
+
+    if (out_family_id) *out_family_id = static_cast<uint64_t>(family_id);
+    return Result::Ok;
+}
+
+StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, const uint64_t family_id, uint64_t* out_member_id)
+{
+    if (member.getName().empty()) return Result::InvalidInput;
+    if (family_id == 0) return Result::InvalidInput;
+
+    if (!connected) {
+        if (!initializeDatabase("")) return Result::DbError;
+    }
+
+    // Check family exists
+    const char* check_sql = "SELECT 1 FROM FamilyInfo WHERE Family_ID = ?;";
+    sqlite3_stmt* check_stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_handle, check_sql, -1, &check_stmt, nullptr);
+    if (rc != SQLITE_OK) return Result::DbError;
+    sqlite3_bind_int64(check_stmt, 1, static_cast<sqlite3_int64>(family_id));
+    rc = sqlite3_step(check_stmt);
+    sqlite3_finalize(check_stmt);
+    if (rc != SQLITE_ROW) return Result::NotFound;
+
+    const char* sql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
+    sqlite3_stmt* stmt = nullptr;
+    rc = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) return Result::DbError;
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
+    sqlite3_bind_text(stmt, 2, member.getName().c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, member.getNickname().c_str(), -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    sqlite3_finalize(stmt);
+    if (out_member_id) *out_member_id = static_cast<uint64_t>(sqlite3_last_insert_rowid(db_handle));
+    return Result::Ok;
+}
+
+StorageManager::Result StorageManager::deleteMemberDataEx(const uint64_t& member_id)
+{
+    if (!connected) {
+        if (!initializeDatabase("")) return Result::DbError;
+    }
+
+    const char* sql = "DELETE FROM MemberInfo WHERE Member_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) return Result::DbError;
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(member_id));
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    int changes = sqlite3_changes(db_handle);
+    sqlite3_finalize(stmt);
+    return (changes > 0) ? Result::Ok : Result::NotFound;
+}
+
+StorageManager::Result StorageManager::deleteFamilyDataEx(const uint64_t& family_id)
+{
+    if (!connected) {
+        if (!initializeDatabase("")) return Result::DbError;
+    }
+
+    const char* sql = "DELETE FROM FamilyInfo WHERE Family_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) return Result::DbError;
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    int changes = sqlite3_changes(db_handle);
+    sqlite3_finalize(stmt);
+    return (changes > 0) ? Result::Ok : Result::NotFound;
+}
+
+StorageManager::Result StorageManager::updateFamilyDataEx(const uint64_t& family_id, const std::string& new_name)
+{
+    if (new_name.empty()) return Result::InvalidInput;
+    if (!connected) {
+        if (!initializeDatabase("")) return Result::DbError;
+    }
+
+    const char* sql = "UPDATE FamilyInfo SET Family_Name = ? WHERE Family_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) return Result::DbError;
+
+    sqlite3_bind_text(stmt, 1, new_name.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(family_id));
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    int changes = sqlite3_changes(db_handle);
+    sqlite3_finalize(stmt);
+    return (changes > 0) ? Result::Ok : Result::NotFound;
+}
+
+StorageManager::Result StorageManager::updateMemberDataEx(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname)
+{
+    if (new_name.empty()) return Result::InvalidInput;
+    if (!connected) {
+        if (!initializeDatabase("")) return Result::DbError;
+    }
+
+    const char* sql = "UPDATE MemberInfo SET Member_Name = ?, Member_Nick_Name = ? WHERE Member_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int rc = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) return Result::DbError;
+
+    sqlite3_bind_text(stmt, 1, new_name.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, new_nickname.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(member_id));
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE) {
+        sqlite3_finalize(stmt);
+        return Result::DbError;
+    }
+
+    int changes = sqlite3_changes(db_handle);
+    sqlite3_finalize(stmt);
+    return (changes > 0) ? Result::Ok : Result::NotFound;
 }
 
 /**

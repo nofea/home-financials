@@ -273,6 +273,90 @@ TEST_F(StorageManagerTest, PersistenceAcrossRestarts)
     EXPECT_EQ(retrieved->getMembers().size(), 2);
 }
 
+TEST_F(StorageManagerTest, ExtendedAPIsValidation) 
+{
+    // Test invalid family name
+    Family invalid_family("");
+    uint64_t family_id = 0;
+    EXPECT_EQ(sm->saveFamilyDataEx(invalid_family, &family_id), StorageManager::Result::InvalidInput);
+
+    // Test valid family save with ID return
+    Family valid_family("Test Family");
+    EXPECT_EQ(sm->saveFamilyDataEx(valid_family, &family_id), StorageManager::Result::Ok);
+    EXPECT_GT(family_id, 0);
+
+    // Test member save validation
+    Member invalid_member("", "");  // Empty name
+    uint64_t member_id = 0;
+    EXPECT_EQ(sm->saveMemberDataEx(invalid_member, family_id, &member_id), StorageManager::Result::InvalidInput);
+
+    // Test member save with non-existent family
+    Member valid_member("John", "Johnny");
+    EXPECT_EQ(sm->saveMemberDataEx(valid_member, 999, &member_id), StorageManager::Result::NotFound);
+
+    // Test valid member save with ID return
+    EXPECT_EQ(sm->saveMemberDataEx(valid_member, family_id, &member_id), StorageManager::Result::Ok);
+    EXPECT_GT(member_id, 0);
+}
+
+TEST_F(StorageManagerTest, ExtendedAPIsUpdateOperations) 
+{
+    // Setup test data
+    Family family("Original Family");
+    uint64_t family_id = 0;
+    ASSERT_EQ(sm->saveFamilyDataEx(family, &family_id), StorageManager::Result::Ok);
+
+    Member member("Original Name", "Original Nick");
+    uint64_t member_id = 0;
+    ASSERT_EQ(sm->saveMemberDataEx(member, family_id, &member_id), StorageManager::Result::Ok);
+
+    // Test family update validations
+    EXPECT_EQ(sm->updateFamilyDataEx(family_id, ""), StorageManager::Result::InvalidInput);
+    EXPECT_EQ(sm->updateFamilyDataEx(999, "New Name"), StorageManager::Result::NotFound);
+    EXPECT_EQ(sm->updateFamilyDataEx(family_id, "Updated Family"), StorageManager::Result::Ok);
+
+    // Verify family update
+    std::unique_ptr<Family> updated_family(sm->getFamilyData(family_id));
+    ASSERT_NE(updated_family, nullptr);
+    EXPECT_EQ(updated_family->getName(), "Updated Family");
+
+    // Test member update validations
+    EXPECT_EQ(sm->updateMemberDataEx(member_id, "", "New Nick"), StorageManager::Result::InvalidInput);
+    EXPECT_EQ(sm->updateMemberDataEx(999, "New Name", "New Nick"), StorageManager::Result::NotFound);
+    EXPECT_EQ(sm->updateMemberDataEx(member_id, "Updated Name", "Updated Nick"), StorageManager::Result::Ok);
+
+    // Verify member update
+    std::unique_ptr<Member> updated_member(sm->getMemberData(member_id));
+    ASSERT_NE(updated_member, nullptr);
+    EXPECT_EQ(updated_member->getName(), "Updated Name");
+    EXPECT_EQ(updated_member->getNickname(), "Updated Nick");
+}
+
+TEST_F(StorageManagerTest, ExtendedAPIsDeleteOperations) 
+{
+    // Setup test data
+    Family family("Test Family");
+    uint64_t family_id = 0;
+    ASSERT_EQ(sm->saveFamilyDataEx(family, &family_id), StorageManager::Result::Ok);
+
+    Member member1("Member 1", "M1");
+    Member member2("Member 2", "M2");
+    uint64_t member1_id = 0, member2_id = 0;
+    ASSERT_EQ(sm->saveMemberDataEx(member1, family_id, &member1_id), StorageManager::Result::Ok);
+    ASSERT_EQ(sm->saveMemberDataEx(member2, family_id, &member2_id), StorageManager::Result::Ok);
+
+    // Test member deletion
+    EXPECT_EQ(sm->deleteMemberDataEx(999), StorageManager::Result::NotFound);
+    EXPECT_EQ(sm->deleteMemberDataEx(member1_id), StorageManager::Result::Ok);
+    EXPECT_EQ(getTableRowCount("MemberInfo"), 1);  // One member remains
+
+    // Test cascade delete via family deletion
+    EXPECT_EQ(sm->deleteFamilyDataEx(999), StorageManager::Result::NotFound);
+    EXPECT_EQ(sm->deleteFamilyDataEx(family_id), StorageManager::Result::Ok);
+    EXPECT_EQ(getTableRowCount("FamilyInfo"), 0);
+    EXPECT_EQ(getTableRowCount("MemberInfo"), 0);  // Cascade delete worked
+}
+
 int main(int argc, char **argv) 
 {
     ::testing::InitGoogleTest(&argc, argv);
