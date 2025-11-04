@@ -84,18 +84,24 @@ commons::Result TUIManager::deleteMember(uint64_t /*family_id*/, uint64_t member
 commons::Result TUIManager::deleteMembers(uint64_t /*family_id*/, const std::vector<uint64_t>& member_ids)
 {
     commons::Result final_res = commons::Result::Ok;
-    for (auto id : member_ids) {
+    for (const auto& id : member_ids) 
+    {
         commons::Result res = home_manager.deleteMember(id);
-        if (res != commons::Result::Ok) {
+        if (res != commons::Result::Ok) 
+        {
             // print per-member error but continue attempting to delete others
             showError(res);
-            if (final_res == commons::Result::Ok) {
+            if (final_res == commons::Result::Ok) 
+            {
                 final_res = res;
             }
-        } else {
+        } 
+        else 
+        {
             io->printLine("Member " + std::to_string(id) + " deleted.");
         }
     }
+    
     return final_res;
 }
 
