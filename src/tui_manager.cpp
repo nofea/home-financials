@@ -13,7 +13,7 @@ TUIManager::~TUIManager()
 {
 }
 
-void TUIManager::showError(commons::Result res) const
+void TUIManager::showError(commons::Result res)
 {
     if (res == commons::Result::Ok) 
     {

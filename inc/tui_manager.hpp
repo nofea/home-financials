@@ -43,13 +43,13 @@ public:
     commons::Result deleteMembers(uint64_t family_id, const std::vector<uint64_t>& member_ids) override;
 
     // Override showError to use the IOInterface
-    void showError(commons::Result res) const;
+    void showError(commons::Result res);
 
     // Start the terminal UI loop; this method handles all user interaction
     // (welcome page, menu display, input parsing and dispatch).
     void run();
 
 private:
-    mutable std::unique_ptr<IOInterface> io;
+    std::unique_ptr<IOInterface> io;
     HomeManager home_manager;
 };

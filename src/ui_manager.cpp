@@ -9,7 +9,7 @@ UIManager::~UIManager()
 {
 }
 
-void UIManager::showError(commons::Result res) const
+void UIManager::showError(commons::Result res)
 {
 	if (res == commons::Result::Ok) 
     {

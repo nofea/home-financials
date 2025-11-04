@@ -28,7 +28,7 @@ public:
 
     // Shared helper: present a clear message for a commons::Result value.
     // This is implemented in the base class so derived classes can reuse it.
-    void showError(commons::Result res) const;
+    void showError(commons::Result res);
 
 protected:
     // Translate an error code to a human-friendly message.
