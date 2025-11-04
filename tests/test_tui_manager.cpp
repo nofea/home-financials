@@ -464,7 +464,7 @@ TEST_F(TUIManagerTest, NonNumericMenuChoice)
 TEST_F(TUIManagerTest, WelcomeMessageDisplayed) 
 {
     // Setup: Just run with exit
-    simulateMenuChoice("7", {});
+    simulateMenuChoice("9", {});
     
     // Run the TUI
     tui->run();
@@ -486,7 +486,7 @@ TEST_F(TUIManagerTest, WelcomeMessageDisplayed)
 TEST_F(TUIManagerTest, GoodbyeMessageDisplayed) 
 {
     // Setup: Exit immediately
-    simulateMenuChoice("7", {});
+    simulateMenuChoice("9", {});
     
     // Run the TUI
     tui->run();
@@ -603,13 +603,6 @@ TEST_F(TUIManagerTest, ListFamilies_ShowsAll)
     
     // Verify output contains both families (check for unique names to avoid conflicts)
     const auto& output = mock_io_ptr->getOutput();
-    
-    // Debug: Print all output
-    std::cout << "=== Test Output ===" << std::endl;
-    for (const auto& line : output) {
-        std::cout << "OUT: " << line << std::endl;
-    }
-    std::cout << "===================" << std::endl;
     
     bool found_family_one = false;
     bool found_family_two = false;
