@@ -1,11 +1,12 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 /**
  * Abstract interface for I/O operations. This allows TUIManager to be tested
  * by injecting mock I/O instead of using std::cin/cout directly.
+ * 
+ * This interface defines only the core I/O operations needed by production code.
  */
 class IOInterface 
 {
@@ -18,9 +19,6 @@ public:
 
     // Input operations
     virtual bool getLine(std::string& line) = 0;
-    
-    // Utility for tests to pre-load input lines
-    virtual void queueInput(const std::vector<std::string>& inputs) = 0;
 };
 
 /**
@@ -32,5 +30,4 @@ public:
     void printLine(const std::string& line) override;
     void printError(const std::string& error) override;
     bool getLine(std::string& line) override;
-    void queueInput(const std::vector<std::string>&) override {} // No-op for real terminal
 };
