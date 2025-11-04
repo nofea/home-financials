@@ -504,3 +504,273 @@ TEST_F(TUIManagerTest, GoodbyeMessageDisplayed)
     }
     EXPECT_TRUE(found_goodbye);
 }
+
+TEST_F(TUIManagerTest, AddFamily_DisplaysID) 
+{
+    // Setup: Add a family
+    simulateMenuChoice("1", {"FamilyWithID"});
+    
+    // Run the TUI
+    tui->run();
+    
+    // Verify output contains ID
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_id = false;
+    for (const auto& line : output) 
+    {
+        if (line.find("FamilyWithID") != std::string::npos && 
+            line.find("added successfully") != std::string::npos &&
+            line.find("ID:") != std::string::npos) 
+        {
+            found_id = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_id);
+}
+
+TEST_F(TUIManagerTest, AddMember_DisplaysID) 
+{
+    // First add a family and ensure success
+    simulateMenuChoice("1", {"FamilyForMember"});
+    tui->run();
+    
+    const auto& output1 = mock_io_ptr->getOutput();
+    
+    // Extract family ID from the output
+    std::string family_id;
+    for (const auto& line : output1)
+    {
+        if (line.find("FamilyForMember") != std::string::npos && 
+            line.find("ID:") != std::string::npos)
+        {
+            auto pos = line.find("ID:");
+            if (pos != std::string::npos)
+            {
+                std::string after_id = line.substr(pos + 3);
+                // Extract the number
+                size_t start = after_id.find_first_of("0123456789");
+                if (start != std::string::npos)
+                {
+                    size_t end = after_id.find_first_not_of("0123456789", start);
+                    family_id = after_id.substr(start, end == std::string::npos ? std::string::npos : end - start);
+                }
+                break;
+            }
+        }
+    }
+    
+    ASSERT_FALSE(family_id.empty()) << "Could not extract family ID from output";
+    
+    // Reset for new test
+    SetUp();
+    
+    // Add member using the extracted family ID
+    simulateMenuChoice("3", {family_id, "John Doe", "JD"});
+    tui->run();
+    
+    // Verify output contains member ID
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_id = false;
+    for (const auto& line : output) 
+    {
+        if (line.find("John Doe") != std::string::npos && 
+            line.find("added to family") != std::string::npos &&
+            line.find("ID:") != std::string::npos) 
+        {
+            found_id = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_id);
+}
+
+TEST_F(TUIManagerTest, ListFamilies_ShowsAll) 
+{
+    // Add first family
+    simulateMenuChoice("1", {"ListTestFam1"});
+    tui->run();
+    
+    // Reset and add second family
+    SetUp();
+    simulateMenuChoice("1", {"ListTestFam2"});
+    tui->run();
+    
+    // Reset and list families
+    SetUp();
+    simulateMenuChoice("7", {});
+    tui->run();
+    
+    // Verify output contains both families (check for unique names to avoid conflicts)
+    const auto& output = mock_io_ptr->getOutput();
+    
+    // Debug: Print all output
+    std::cout << "=== Test Output ===" << std::endl;
+    for (const auto& line : output) {
+        std::cout << "OUT: " << line << std::endl;
+    }
+    std::cout << "===================" << std::endl;
+    
+    bool found_family_one = false;
+    bool found_family_two = false;
+    
+    for (const auto& line : output) 
+    {
+        if (line.find("ListTestFam1") != std::string::npos) 
+        {
+            found_family_one = true;
+        }
+        if (line.find("ListTestFam2") != std::string::npos) 
+        {
+            found_family_two = true;
+        }
+    }
+    EXPECT_TRUE(found_family_one);
+    EXPECT_TRUE(found_family_two);
+}
+
+TEST_F(TUIManagerTest, ListFamilies_EmptyDatabase) 
+{
+    // Just list families - may show existing data from other tests, but should not crash
+    simulateMenuChoice("7", {});
+    tui->run();
+    
+    // Verify the command runs without error (either shows data or says empty)
+    const auto& output = mock_io_ptr->getOutput();
+    bool has_output = !output.empty();
+    EXPECT_TRUE(has_output);
+}
+
+TEST_F(TUIManagerTest, ListMembersOfFamily_ShowsAll) 
+{
+    // Add a family and get its ID
+    simulateMenuChoice("1", {"ListMemberTestFamily"});
+    tui->run();
+    
+    const auto& output1 = mock_io_ptr->getOutput();
+    std::string family_id;
+    for (const auto& line : output1)
+    {
+        if (line.find("ListMemberTestFamily") != std::string::npos && 
+            line.find("ID:") != std::string::npos)
+        {
+            auto pos = line.find("ID:");
+            if (pos != std::string::npos)
+            {
+                std::string after_id = line.substr(pos + 3);
+                size_t start = after_id.find_first_of("0123456789");
+                if (start != std::string::npos)
+                {
+                    size_t end = after_id.find_first_not_of("0123456789", start);
+                    family_id = after_id.substr(start, end == std::string::npos ? std::string::npos : end - start);
+                }
+                break;
+            }
+        }
+    }
+    ASSERT_FALSE(family_id.empty());
+    
+    // Add first member
+    SetUp();
+    simulateMenuChoice("3", {family_id, "Alice", "Al"});
+    tui->run();
+    
+    // Add second member
+    SetUp();
+    simulateMenuChoice("3", {family_id, "Bob", "Bobby"});
+    tui->run();
+    
+    // List members
+    SetUp();
+    simulateMenuChoice("8", {family_id});
+    tui->run();
+    
+    // Verify output contains both members
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_alice = false;
+    bool found_bob = false;
+    
+    for (const auto& line : output) 
+    {
+        if (line.find("Alice") != std::string::npos) 
+        {
+            found_alice = true;
+        }
+        if (line.find("Bob") != std::string::npos) 
+        {
+            found_bob = true;
+        }
+    }
+    EXPECT_TRUE(found_alice);
+    EXPECT_TRUE(found_bob);
+}
+
+TEST_F(TUIManagerTest, ListMembersOfFamily_EmptyFamily) 
+{
+    // Add a family with a unique name
+    simulateMenuChoice("1", {"EmptyFamilyListTest"});
+    tui->run();
+    
+    const auto& output1 = mock_io_ptr->getOutput();
+    std::string family_id;
+    for (const auto& line : output1)
+    {
+        if (line.find("EmptyFamilyListTest") != std::string::npos && 
+            line.find("ID:") != std::string::npos)
+        {
+            auto pos = line.find("ID:");
+            if (pos != std::string::npos)
+            {
+                std::string after_id = line.substr(pos + 3);
+                size_t start = after_id.find_first_of("0123456789");
+                if (start != std::string::npos)
+                {
+                    size_t end = after_id.find_first_not_of("0123456789", start);
+                    family_id = after_id.substr(start, end == std::string::npos ? std::string::npos : end - start);
+                }
+                break;
+            }
+        }
+    }
+    ASSERT_FALSE(family_id.empty());
+    
+    // List members of the empty family
+    SetUp();
+    simulateMenuChoice("8", {family_id});
+    tui->run();
+    
+    // Verify output contains "No members found"
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_empty_message = false;
+    
+    for (const auto& line : output) 
+    {
+        if (line.find("No members found") != std::string::npos) 
+        {
+            found_empty_message = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_empty_message);
+}
+
+TEST_F(TUIManagerTest, ListMembersOfFamily_InvalidId) 
+{
+    // Try to list members with invalid ID
+    simulateMenuChoice("8", {"invalid"});
+    tui->run();
+    
+    // Verify error message
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    
+    for (const auto& line : output) 
+    {
+        if (line.find("Invalid family id") != std::string::npos) 
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}

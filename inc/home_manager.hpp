@@ -19,15 +19,21 @@ public:
 
     // Family operations (return commons::Result for error reporting)
     commons::Result addFamily(const Family &family);
+    commons::Result addFamily(const Family &family, uint64_t* out_family_id);
     std::unique_ptr<Family> getFamily(const uint64_t family_id);
     commons::Result updateFamilyName(const uint64_t family_id, const std::string &new_name);
     commons::Result deleteFamily(const uint64_t family_id);
 
     // Member operations
     commons::Result addMemberToFamily(const Member &member, const uint64_t family_id);
+    commons::Result addMemberToFamily(const Member &member, const uint64_t family_id, uint64_t* out_member_id);
     std::unique_ptr<Member> getMember(const uint64_t member_id);
     commons::Result updateMember(const uint64_t member_id, const std::string &new_name, const std::string &new_nickname);
     commons::Result deleteMember(const uint64_t member_id);
+
+    // Listing helpers
+    std::vector<Family> listFamilies();
+    std::vector<Member> listMembersOfFamily(const uint64_t family_id);
 
     // Testing access
     StorageManager* getStorageManager() { return ptr_storage.get(); }

@@ -26,11 +26,12 @@ void TUIManager::showError(commons::Result res) const
 commons::Result TUIManager::addFamily(const std::string& name)
 {
     Family f(name);
-    commons::Result res = home_manager.addFamily(f);
+    uint64_t new_id = 0;
+    commons::Result res = home_manager.addFamily(f, &new_id);
     if (res != commons::Result::Ok) {
         showError(res);
     } else {
-        io->printLine("Family '" + name + "' added successfully.");
+        io->printLine("Family '" + name + "' added successfully. ID: " + std::to_string(new_id));
     }
     return res;
 }
@@ -48,11 +49,12 @@ commons::Result TUIManager::deleteFamily(uint64_t family_id)
 
 commons::Result TUIManager::addMember(uint64_t family_id, const Member& member)
 {
-    commons::Result res = home_manager.addMemberToFamily(member, family_id);
+    uint64_t new_id = 0;
+    commons::Result res = home_manager.addMemberToFamily(member, family_id, &new_id);
     if (res != commons::Result::Ok) {
         showError(res);
     } else {
-        io->printLine("Member '" + member.getName() + "' added to family " + std::to_string(family_id) + ".");
+        io->printLine("Member '" + member.getName() + "' added to family " + std::to_string(family_id) + ". ID: " + std::to_string(new_id));
     }
     return res;
 }
@@ -115,7 +117,9 @@ void TUIManager::run()
         io->printLine(" 4) Update Member");
         io->printLine(" 5) Delete Member");
         io->printLine(" 6) Delete Multiple Members");
-        io->printLine(" 7) Exit");
+        io->printLine(" 7) List Families");
+        io->printLine(" 8) List Members of a Family");
+        io->printLine(" 9) Exit");
         io->printLine("Choice: ");
 
         std::string line;
@@ -276,6 +280,55 @@ void TUIManager::run()
                     break;
                 }
                 deleteMembers(0, ids);
+                break;
+            }
+
+            case MenuOption::ListFamilies:
+            {
+                auto families = home_manager.listFamilies();
+                if (families.empty())
+                {
+                    io->printLine("No families found.");
+                }
+                else
+                {
+                    io->printLine("Families:");
+                    for (const auto& fam : families)
+                    {
+                        io->printLine("  ID: " + std::to_string(fam.getId()) + " - " + fam.getName());
+                    }
+                }
+                break;
+            }
+
+            case MenuOption::ListMembersOfFamily:
+            {
+                io->printLine("Enter family id to list members: ");
+                std::string fidstr;
+                io->getLine(fidstr);
+                try {
+                    uint64_t fid = std::stoull(fidstr);
+                    auto members = home_manager.listMembersOfFamily(fid);
+                    if (members.empty())
+                    {
+                        io->printLine("No members found for family " + std::to_string(fid) + ".");
+                    }
+                    else
+                    {
+                        io->printLine("Members of family " + std::to_string(fid) + ":");
+                        for (const auto& mem : members)
+                        {
+                            std::string line = "  ID: " + std::to_string(mem.getId()) + " - " + mem.getName();
+                            if (!mem.getNickname().empty())
+                            {
+                                line += " (" + mem.getNickname() + ")";
+                            }
+                            io->printLine(line);
+                        }
+                    }
+                } catch (...) {
+                    io->printLine("Invalid family id.");
+                }
                 break;
             }
 

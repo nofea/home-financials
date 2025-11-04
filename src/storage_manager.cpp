@@ -827,3 +827,75 @@ void StorageManager::disconnect()
 
     connected = false;
 }
+
+/**
+ * @brief List all families in the database.
+ * 
+ * @return std::vector<Family> Vector of families with IDs
+ */
+std::vector<Family> StorageManager::listFamilies()
+{
+    std::vector<Family> families;
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return families;
+        }
+    }
+
+    const char* sql = "SELECT Family_ID, Family_Name FROM FamilyInfo ORDER BY Family_ID;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        return families;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        uint64_t id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        std::string name_str = name ? reinterpret_cast<const char*>(name) : std::string();
+        families.emplace_back(id, name_str);
+    }
+    sqlite3_finalize(stmt);
+    return families;
+}
+
+/**
+ * @brief List all members of a specific family.
+ * 
+ * @param family_id ID of the family whose members to list
+ * @return std::vector<Member> Vector of members with IDs
+ */
+std::vector<Member> StorageManager::listMembersOfFamily(uint64_t family_id)
+{
+    std::vector<Member> members;
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return members;
+        }
+    }
+
+    const char* sql = "SELECT Member_ID, Member_Name, Member_Nick_Name FROM MemberInfo WHERE Family_ID = ? ORDER BY Member_ID;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        return members;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        uint64_t id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        const unsigned char* nick = sqlite3_column_text(stmt, 2);
+        std::string name_str = name ? reinterpret_cast<const char*>(name) : std::string();
+        std::string nick_str = nick ? reinterpret_cast<const char*>(nick) : std::string();
+        members.emplace_back(id, name_str, nick_str);
+    }
+    sqlite3_finalize(stmt);
+    return members;
+}

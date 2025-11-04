@@ -41,6 +41,9 @@ public:
     bool deleteMemberData(const uint64_t& member_id);
     bool deleteFamilyData(const uint64_t& family_id);
 
+    // Listing helpers for UI
+    std::vector<Family> listFamilies();
+    std::vector<Member> listMembersOfFamily(uint64_t family_id);
 
 private:
     // Owned SQLite connection handle (nullptr when not connected)

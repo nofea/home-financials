@@ -33,6 +33,18 @@ commons::Result HomeManager::addFamily(const Family &family)
 }
 
 /**
+ * @brief Add a new family and retrieve the created ID.
+ * 
+ * @param family Family to add.
+ * @param out_family_id Pointer to store the created family ID.
+ * @return commons::Result 
+ */
+commons::Result HomeManager::addFamily(const Family &family, uint64_t* out_family_id)
+{
+	return ptr_storage->saveFamilyDataEx(family, out_family_id);
+}
+
+/**
  * @brief Get a family by ID.
  * 
  * @param family_id ID of the family to retrieve.
@@ -82,6 +94,19 @@ commons::Result HomeManager::addMemberToFamily(const Member &member, const uint6
 }
 
 /**
+ * @brief Add a member to a family and retrieve the created ID.
+ * 
+ * @param member Member to add.
+ * @param family_id ID of the family to add the member to.
+ * @param out_member_id Pointer to store the created member ID.
+ * @return commons::Result 
+ */
+commons::Result HomeManager::addMemberToFamily(const Member &member, const uint64_t family_id, uint64_t* out_member_id)
+{
+	return ptr_storage->saveMemberDataEx(member, family_id, out_member_id);
+}
+
+/**
  * @brief Get a member by ID.
  * 
  * @param member_id ID of the member to retrieve.
@@ -117,4 +142,25 @@ commons::Result HomeManager::updateMember(const uint64_t member_id, const std::s
 commons::Result HomeManager::deleteMember(const uint64_t member_id)
 {
 	return ptr_storage->deleteMemberDataEx(member_id);
+}
+
+/**
+ * @brief List all families in the database.
+ * 
+ * @return std::vector<Family> Vector of families with IDs
+ */
+std::vector<Family> HomeManager::listFamilies()
+{
+	return ptr_storage->listFamilies();
+}
+
+/**
+ * @brief List all members of a specific family.
+ * 
+ * @param family_id ID of the family whose members to list
+ * @return std::vector<Member> Vector of members with IDs
+ */
+std::vector<Member> HomeManager::listMembersOfFamily(const uint64_t family_id)
+{
+	return ptr_storage->listMembersOfFamily(family_id);
 }
