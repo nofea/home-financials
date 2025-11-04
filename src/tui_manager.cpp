@@ -59,7 +59,7 @@ commons::Result TUIManager::addMember(uint64_t family_id, const Member& member)
     return res;
 }
 
-commons::Result TUIManager::updateMember(uint64_t /*family_id*/, uint64_t member_id, const std::string& new_name, const std::string& new_nickname)
+commons::Result TUIManager::updateMember(uint64_t member_id, const std::string& new_name, const std::string& new_nickname)
 {
     commons::Result res = home_manager.updateMember(member_id, new_name, new_nickname);
     if (res != commons::Result::Ok) {
@@ -70,7 +70,7 @@ commons::Result TUIManager::updateMember(uint64_t /*family_id*/, uint64_t member
     return res;
 }
 
-commons::Result TUIManager::deleteMember(uint64_t /*family_id*/, uint64_t member_id)
+commons::Result TUIManager::deleteMember(uint64_t member_id)
 {
     commons::Result res = home_manager.deleteMember(member_id);
     if (res != commons::Result::Ok) {
@@ -81,7 +81,7 @@ commons::Result TUIManager::deleteMember(uint64_t /*family_id*/, uint64_t member
     return res;
 }
 
-commons::Result TUIManager::deleteMembers(uint64_t /*family_id*/, const std::vector<uint64_t>& member_ids)
+commons::Result TUIManager::deleteMembers(const std::vector<uint64_t>& member_ids)
 {
     commons::Result final_res = commons::Result::Ok;
     for (const auto& id : member_ids) 
@@ -101,7 +101,7 @@ commons::Result TUIManager::deleteMembers(uint64_t /*family_id*/, const std::vec
             io->printLine("Member " + std::to_string(id) + " deleted.");
         }
     }
-    
+
     return final_res;
 }
 
@@ -240,7 +240,7 @@ void TUIManager::run()
                 std::string newnick; io->getLine(newnick);
                 try {
                     uint64_t mid = std::stoull(midstr);
-                    updateMember(0, mid, newname, newnick);
+                    updateMember(mid, newname, newnick);
                 } catch (...) {
 
                     io->printLine("Invalid member id.");
@@ -255,7 +255,7 @@ void TUIManager::run()
                 std::string midstr; io->getLine(midstr);
                 try {
                     uint64_t mid = std::stoull(midstr);
-                    deleteMember(0, mid);
+                    deleteMember(mid);
                 } catch (...) {
 
                     io->printLine("Invalid member id.");
@@ -285,7 +285,7 @@ void TUIManager::run()
                     io->printLine("Invalid input for member ids.");
                     break;
                 }
-                deleteMembers(0, ids);
+                deleteMembers(ids);
                 break;
             }
 

@@ -34,13 +34,12 @@ public:
     commons::Result deleteFamily(uint64_t family_id) override;
 
     commons::Result addMember(uint64_t family_id, const Member& member) override;
-    commons::Result updateMember(uint64_t family_id,
-                                uint64_t member_id,
+    commons::Result updateMember(uint64_t member_id,
                                 const std::string& new_name,
                                 const std::string& new_nickname) override;
 
-    commons::Result deleteMember(uint64_t family_id, uint64_t member_id) override;
-    commons::Result deleteMembers(uint64_t family_id, const std::vector<uint64_t>& member_ids) override;
+    commons::Result deleteMember(uint64_t member_id) override;
+    commons::Result deleteMembers(const std::vector<uint64_t>& member_ids) override;
 
     // Override showError to use the IOInterface
     void showError(commons::Result res);

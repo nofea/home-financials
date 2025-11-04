@@ -12,7 +12,7 @@ UIManager::~UIManager()
 void UIManager::showError(commons::Result res)
 {
 	if (res == commons::Result::Ok) 
-    {
+	{
 		return; // nothing to show for success
 	}
 
