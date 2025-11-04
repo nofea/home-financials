@@ -7,7 +7,19 @@
  * @param name Name of the family
  */
 Family::Family(const std::string& name)
-    : family_name(name) 
+    : family_id(0), family_name(name) 
+{
+
+}
+
+/**
+ * @brief Construct a new Family:: Family object from database
+ * 
+ * @param id ID of the family
+ * @param name Name of the family
+ */
+Family::Family(uint64_t id, const std::string& name)
+    : family_id(id), family_name(name) 
 {
 
 }

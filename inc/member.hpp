@@ -12,7 +12,12 @@ private:
     Member() = delete; // Prevent default constructor
     
 public:
+    // Constructor for creating new members (before saving to DB)
     Member(const std::string& name, const std::string& nickname="");
+    
+    // Constructor for members retrieved from database (with known ID)
+    Member(uint64_t id, const std::string& name, const std::string& nickname="");
+    
     virtual ~Member();
 
     uint64_t getId() const;

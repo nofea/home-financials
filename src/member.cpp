@@ -3,12 +3,24 @@
 /**
  * @brief Construct a new Member:: Member object
  * 
- * @param id member ID
  * @param name member name
  * @param nickname member nickname
  */
 Member::Member(const std::string& name, const std::string& nickname)
-    : member_name(name), member_nickname(nickname) 
+    : member_id(0), member_name(name), member_nickname(nickname) 
+{
+
+}
+
+/**
+ * @brief Construct a new Member:: Member object from database
+ * 
+ * @param id member ID
+ * @param name member name
+ * @param nickname member nickname
+ */
+Member::Member(uint64_t id, const std::string& name, const std::string& nickname)
+    : member_id(id), member_name(name), member_nickname(nickname) 
 {
 
 }

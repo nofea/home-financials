@@ -13,7 +13,12 @@ private:
     Family() = delete; // Prevent default constructor
 
 public:
+    // Constructor for creating new families (before saving to DB)
     Family(const std::string& name);
+    
+    // Constructor for families retrieved from database (with known ID)
+    Family(uint64_t id, const std::string& name);
+    
     virtual ~Family();
 
     // Add a member to the family
