@@ -42,7 +42,7 @@ TEST_F(HomeManagerTest, AddAndGetFamily)
 {
     // Add a new family
     Family family("Test Family");
-    EXPECT_EQ(hm->addFamily(family), StorageManager::Result::Ok);
+    EXPECT_EQ(hm->addFamily(family), commons::Result::Ok);
 
     // Retrieve the family (should be ID 1 as it's the first)
     auto retrieved = hm->getFamily(1);
@@ -55,17 +55,17 @@ TEST_F(HomeManagerTest, AddAndGetFamily)
 
     // Try to add invalid family (empty name)
     Family invalid("");
-    EXPECT_EQ(hm->addFamily(invalid), StorageManager::Result::InvalidInput);
+    EXPECT_EQ(hm->addFamily(invalid), commons::Result::InvalidInput);
 }
 
 TEST_F(HomeManagerTest, UpdateFamily)
 {
     // First add a family
     Family family("Original Name");
-    ASSERT_EQ(hm->addFamily(family), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addFamily(family), commons::Result::Ok);
 
     // Update with valid name
-    EXPECT_EQ(hm->updateFamilyName(1, "Updated Name"), StorageManager::Result::Ok);
+    EXPECT_EQ(hm->updateFamilyName(1, "Updated Name"), commons::Result::Ok);
 
     // Verify update
     auto updated = hm->getFamily(1);
@@ -73,24 +73,24 @@ TEST_F(HomeManagerTest, UpdateFamily)
     EXPECT_EQ(updated->getName(), "Updated Name");
 
     // Try invalid updates
-    EXPECT_EQ(hm->updateFamilyName(1, ""), StorageManager::Result::InvalidInput);
-    EXPECT_EQ(hm->updateFamilyName(999, "New Name"), StorageManager::Result::NotFound);
+    EXPECT_EQ(hm->updateFamilyName(1, ""), commons::Result::InvalidInput);
+    EXPECT_EQ(hm->updateFamilyName(999, "New Name"), commons::Result::NotFound);
 }
 
 TEST_F(HomeManagerTest, DeleteFamily)
 {
     // Add a family with members
     Family family("Test Family");
-    ASSERT_EQ(hm->addFamily(family), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addFamily(family), commons::Result::Ok);
 
     // Add members to the family
     Member member1("John", "JD");
     Member member2("Jane", "JN");
-    ASSERT_EQ(hm->addMemberToFamily(member1, 1), StorageManager::Result::Ok);
-    ASSERT_EQ(hm->addMemberToFamily(member2, 1), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addMemberToFamily(member1, 1), commons::Result::Ok);
+    ASSERT_EQ(hm->addMemberToFamily(member2, 1), commons::Result::Ok);
 
     // Delete the family
-    EXPECT_EQ(hm->deleteFamily(1), StorageManager::Result::Ok);
+    EXPECT_EQ(hm->deleteFamily(1), commons::Result::Ok);
 
     // Verify family and members are gone
     EXPECT_EQ(hm->getFamily(1), nullptr);
@@ -98,18 +98,18 @@ TEST_F(HomeManagerTest, DeleteFamily)
     EXPECT_EQ(hm->getMember(2), nullptr);
 
     // Try to delete non-existent family
-    EXPECT_EQ(hm->deleteFamily(999), StorageManager::Result::NotFound);
+    EXPECT_EQ(hm->deleteFamily(999), commons::Result::NotFound);
 }
 
 TEST_F(HomeManagerTest, AddAndGetMember)
 {
     // First create a family
     Family family("Test Family");
-    ASSERT_EQ(hm->addFamily(family), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addFamily(family), commons::Result::Ok);
 
     // Add member to family
     Member member("John Doe", "JD");
-    EXPECT_EQ(hm->addMemberToFamily(member, 1), StorageManager::Result::Ok);
+    EXPECT_EQ(hm->addMemberToFamily(member, 1), commons::Result::Ok);
 
     // Retrieve the member
     auto retrieved = hm->getMember(1);
@@ -118,24 +118,24 @@ TEST_F(HomeManagerTest, AddAndGetMember)
     EXPECT_EQ(retrieved->getNickname(), "JD");
 
     // Try to add member to non-existent family
-    EXPECT_EQ(hm->addMemberToFamily(member, 999), StorageManager::Result::NotFound);
+    EXPECT_EQ(hm->addMemberToFamily(member, 999), commons::Result::NotFound);
 
     // Try to add invalid member
     Member invalid("", "");
-    EXPECT_EQ(hm->addMemberToFamily(invalid, 1), StorageManager::Result::InvalidInput);
+    EXPECT_EQ(hm->addMemberToFamily(invalid, 1), commons::Result::InvalidInput);
 }
 
 TEST_F(HomeManagerTest, UpdateMember)
 {
     // Setup: add family and member
     Family family("Test Family");
-    ASSERT_EQ(hm->addFamily(family), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addFamily(family), commons::Result::Ok);
 
     Member member("Original Name", "ON");
-    ASSERT_EQ(hm->addMemberToFamily(member, 1), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addMemberToFamily(member, 1), commons::Result::Ok);
 
     // Update member with valid data
-    EXPECT_EQ(hm->updateMember(1, "Updated Name", "UN"), StorageManager::Result::Ok);
+    EXPECT_EQ(hm->updateMember(1, "Updated Name", "UN"), commons::Result::Ok);
 
     // Verify update
     auto updated = hm->getMember(1);
@@ -144,38 +144,38 @@ TEST_F(HomeManagerTest, UpdateMember)
     EXPECT_EQ(updated->getNickname(), "UN");
 
     // Test partial updates
-    EXPECT_EQ(hm->updateMember(1, "", "UpdatedNick"), StorageManager::Result::Ok); // Only nickname update
+    EXPECT_EQ(hm->updateMember(1, "", "UpdatedNick"), commons::Result::Ok); // Only nickname update
     auto nickUpdated = hm->getMember(1);
     ASSERT_NE(nickUpdated, nullptr);
     EXPECT_EQ(nickUpdated->getName(), "Updated Name"); // Name should remain unchanged
     EXPECT_EQ(nickUpdated->getNickname(), "UpdatedNick");
 
-    EXPECT_EQ(hm->updateMember(1, "FinalName", ""), StorageManager::Result::Ok); // Only name update
+    EXPECT_EQ(hm->updateMember(1, "FinalName", ""), commons::Result::Ok); // Only name update
     auto nameUpdated = hm->getMember(1);
     ASSERT_NE(nameUpdated, nullptr);
     EXPECT_EQ(nameUpdated->getName(), "FinalName");
     EXPECT_EQ(nameUpdated->getNickname(), "UpdatedNick"); // Nickname should remain unchanged
 
     // Test invalid updates - member not found
-    EXPECT_EQ(hm->updateMember(999, "Name", "Nick"), StorageManager::Result::NotFound);
+    EXPECT_EQ(hm->updateMember(999, "Name", "Nick"), commons::Result::NotFound);
 
     // Test invalid updates - no fields to update
-    EXPECT_EQ(hm->updateMember(1, "", ""), StorageManager::Result::InvalidInput);
+    EXPECT_EQ(hm->updateMember(1, "", ""), commons::Result::InvalidInput);
 }
 
 TEST_F(HomeManagerTest, DeleteMember)
 {
     // Setup: add family and members
     Family family("Test Family");
-    ASSERT_EQ(hm->addFamily(family), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addFamily(family), commons::Result::Ok);
 
     Member member1("John", "J");
     Member member2("Jane", "JN");
-    ASSERT_EQ(hm->addMemberToFamily(member1, 1), StorageManager::Result::Ok);
-    ASSERT_EQ(hm->addMemberToFamily(member2, 1), StorageManager::Result::Ok);
+    ASSERT_EQ(hm->addMemberToFamily(member1, 1), commons::Result::Ok);
+    ASSERT_EQ(hm->addMemberToFamily(member2, 1), commons::Result::Ok);
 
     // Delete first member
-    EXPECT_EQ(hm->deleteMember(1), StorageManager::Result::Ok);
+    EXPECT_EQ(hm->deleteMember(1), commons::Result::Ok);
 
     // Verify first member gone but second exists
     EXPECT_EQ(hm->getMember(1), nullptr);
@@ -184,7 +184,7 @@ TEST_F(HomeManagerTest, DeleteMember)
     EXPECT_EQ(remaining->getName(), "Jane");
 
     // Try to delete non-existent member
-    EXPECT_EQ(hm->deleteMember(999), StorageManager::Result::NotFound);
+    EXPECT_EQ(hm->deleteMember(999), commons::Result::NotFound);
 }
 
 int main(int argc, char **argv)
