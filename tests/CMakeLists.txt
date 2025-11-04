@@ -34,11 +34,20 @@ add_executable(test_home_manager
     test_home_manager.cpp
 )
 
+add_executable(test_tui_manager
+    test_tui_manager.cpp
+    mock_io.cpp
+)
+
 target_include_directories(test_storage_manager PRIVATE
     ${CMAKE_SOURCE_DIR}/inc
 )
 
 target_include_directories(test_home_manager PRIVATE
+    ${CMAKE_SOURCE_DIR}/inc
+)
+
+target_include_directories(test_tui_manager PRIVATE
     ${CMAKE_SOURCE_DIR}/inc
 )
 
@@ -54,6 +63,13 @@ target_link_libraries(test_home_manager PRIVATE
     SQLite::SQLite3
 )
 
+target_link_libraries(test_tui_manager PRIVATE
+    ${GTEST_LIB_TARGET}
+    home_financials_lib
+    SQLite::SQLite3
+)
+
 include(GoogleTest)
 gtest_discover_tests(test_storage_manager)
 gtest_discover_tests(test_home_manager)
+gtest_discover_tests(test_tui_manager)

@@ -6,6 +6,9 @@ set(LIB_SRC
     member.cpp
     storage_manager.cpp
     home_manager.cpp
+    ui_manager.cpp
+    tui_manager.cpp
+    io_interface.cpp
 )
 
 add_library(home_financials_lib STATIC ${LIB_SRC})
