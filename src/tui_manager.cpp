@@ -4,6 +4,11 @@
 #include <algorithm>
 #include <cctype>
 
+TUIManager::TUIManager()
+    : io(std::make_unique<TerminalIO>())
+{
+}
+
 TUIManager::TUIManager(std::unique_ptr<IOInterface> io_)
     : io(std::move(io_))
 {

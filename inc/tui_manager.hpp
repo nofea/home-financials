@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ui_manager.hpp"
-#include "home_manager.hpp"
 #include "io_interface.hpp"
 #include <memory>
 #include <vector>
@@ -10,9 +9,12 @@
 class TUIManager : public UIManager
 {
 public:
-    // Constructor taking an optional I/O interface. Defaults to TerminalIO
-    // if none provided.
-    explicit TUIManager(std::unique_ptr<IOInterface> io = std::make_unique<TerminalIO>());
+    // Default constructor for production use - creates TerminalIO internally
+    TUIManager();
+    
+    // Constructor for testing - accepts injected IOInterface
+    explicit TUIManager(std::unique_ptr<IOInterface> io);
+    
     ~TUIManager() override;
 
     // Menu options for the terminal UI. Use these instead of magic numbers
