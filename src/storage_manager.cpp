@@ -160,7 +160,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
  */
 bool StorageManager::saveMemberData(const Member& member, const uint64_t family_id) 
 {
-    return saveMemberDataEx(member, family_id, nullptr) == Result::Ok;
+    return saveMemberDataEx(member, family_id, nullptr) == commons::Result::Ok;
 }
 
 /**
@@ -172,7 +172,7 @@ bool StorageManager::saveMemberData(const Member& member, const uint64_t family_
  */
 bool StorageManager::saveFamilyData(const Family& family) 
 {
-    return saveFamilyDataEx(family, nullptr) == Result::Ok;
+    return saveFamilyDataEx(family, nullptr) == commons::Result::Ok;
 }
 
 /**
@@ -404,9 +404,9 @@ bool StorageManager::updateFamilyData(const uint64_t& family_id, const std::stri
  */
 bool StorageManager::updateMemberData(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname)
 {
-    // Delegate to Ex version, reuse logic but convert Result to bool
+    // Delegate to Ex version, reuse logic but convert commons::Result to bool
     auto result = updateMemberDataEx(member_id, new_name, new_nickname);
-    return result == Result::Ok;
+    return result == commons::Result::Ok;
 }
 
 /**
@@ -414,20 +414,20 @@ bool StorageManager::updateMemberData(const uint64_t& member_id, const std::stri
  * 
  * @param family Family to save.
  * @param out_family_id ID output parameter.
- * @return StorageManager::Result 
+ * @return commons::Result 
  */
-StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, uint64_t* out_family_id)
+commons::Result StorageManager::saveFamilyDataEx(const Family& family, uint64_t* out_family_id)
 {
     if (family.getName().empty()) 
     {
-        return Result::InvalidInput;
+        return commons::Result::InvalidInput;
     }
 
     if (!connected) 
     {
         if (!initializeDatabase(""))
         {
-            return Result::DbError;
+            return commons::Result::DbError;
         }
     }
 
@@ -437,7 +437,7 @@ StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, ui
 
     if (ret_code != SQLITE_OK) 
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     ret_code = sqlite3_bind_text(stmt, 1, family.getName().c_str(), -1, SQLITE_TRANSIENT);
@@ -445,7 +445,7 @@ StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, ui
     if (ret_code != SQLITE_OK) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     ret_code = sqlite3_step(stmt);
@@ -453,7 +453,7 @@ StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, ui
     if (ret_code != SQLITE_DONE) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     sqlite3_finalize(stmt);
@@ -483,7 +483,7 @@ StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, ui
     }
 
     if (out_family_id) *out_family_id = static_cast<uint64_t>(family_id);
-    return Result::Ok;
+    return commons::Result::Ok;
 }
 
 /**
@@ -492,25 +492,25 @@ StorageManager::Result StorageManager::saveFamilyDataEx(const Family& family, ui
  * @param member Member to save.
  * @param family_id ID of the family the member belongs to.
  * @param out_member_id Member ID output parameter.
- * @return StorageManager::Result 
+ * @return commons::Result 
  */
-StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, const uint64_t family_id, uint64_t* out_member_id)
+commons::Result StorageManager::saveMemberDataEx(const Member& member, const uint64_t family_id, uint64_t* out_member_id)
 {
     if (member.getName().empty())
     {
-        return Result::InvalidInput;
+        return commons::Result::InvalidInput;
     }
 
     if (family_id == 0)
     {
-        return Result::InvalidInput;
+        return commons::Result::InvalidInput;
     } 
 
     if (!connected) 
     {
         if (!initializeDatabase(""))
         {
-            return Result::DbError;
+            return commons::Result::DbError;
         }
     }
 
@@ -521,7 +521,7 @@ StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, co
 
     if (ret_code != SQLITE_OK)
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     } 
 
     sqlite3_bind_int64(check_stmt, 1, static_cast<sqlite3_int64>(family_id));
@@ -530,7 +530,7 @@ StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, co
 
     if (ret_code != SQLITE_ROW)
     {
-        return Result::NotFound;
+        return commons::Result::NotFound;
     } 
 
     const char* sql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
@@ -539,7 +539,7 @@ StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, co
 
     if (ret_code != SQLITE_OK)
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     }
     
 
@@ -552,7 +552,7 @@ StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, co
     if (ret_code != SQLITE_DONE) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     sqlite3_finalize(stmt);
@@ -562,22 +562,22 @@ StorageManager::Result StorageManager::saveMemberDataEx(const Member& member, co
         *out_member_id = static_cast<uint64_t>(sqlite3_last_insert_rowid(db_handle));
     } 
 
-    return Result::Ok;
+    return commons::Result::Ok;
 }
 
 /**
  * @brief Delete member data.
  * 
  * @param member_id ID of the member to delete.
- * @return StorageManager::Result 
+ * @return commons::Result 
  */
-StorageManager::Result StorageManager::deleteMemberDataEx(const uint64_t& member_id)
+commons::Result StorageManager::deleteMemberDataEx(const uint64_t& member_id)
 {
     if (!connected) 
     {
         if (!initializeDatabase(""))
         {
-            return Result::DbError;
+            return commons::Result::DbError;
         } 
     }
 
@@ -587,7 +587,7 @@ StorageManager::Result StorageManager::deleteMemberDataEx(const uint64_t& member
 
     if (ret_code != SQLITE_OK)
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     } 
 
     sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(member_id));
@@ -596,28 +596,28 @@ StorageManager::Result StorageManager::deleteMemberDataEx(const uint64_t& member
     if (ret_code != SQLITE_DONE) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     int changes = sqlite3_changes(db_handle);
     sqlite3_finalize(stmt);
 
-    return (changes > 0) ? Result::Ok : Result::NotFound;
+    return (changes > 0) ? commons::Result::Ok : commons::Result::NotFound;
 }
 
 /**
  * @brief Delete family data.
  * 
  * @param family_id ID of the family to delete.
- * @return StorageManager::Result 
+ * @return commons::Result 
  */
-StorageManager::Result StorageManager::deleteFamilyDataEx(const uint64_t& family_id)
+commons::Result StorageManager::deleteFamilyDataEx(const uint64_t& family_id)
 {
     if (!connected) 
     {
         if (!initializeDatabase(""))
         {
-            return Result::DbError;
+            return commons::Result::DbError;
         }
     }
 
@@ -627,7 +627,7 @@ StorageManager::Result StorageManager::deleteFamilyDataEx(const uint64_t& family
 
     if (ret_code != SQLITE_OK)
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
@@ -636,13 +636,13 @@ StorageManager::Result StorageManager::deleteFamilyDataEx(const uint64_t& family
     if (ret_code != SQLITE_DONE) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     int changes = sqlite3_changes(db_handle);
     sqlite3_finalize(stmt);
 
-    return (changes > 0) ? Result::Ok : Result::NotFound;
+    return (changes > 0) ? commons::Result::Ok : commons::Result::NotFound;
 }
 
 /**
@@ -650,20 +650,20 @@ StorageManager::Result StorageManager::deleteFamilyDataEx(const uint64_t& family
  * 
  * @param family_id ID of the family to update.
  * @param new_name Name to update to.
- * @return StorageManager::Result 
+ * @return commons::Result 
  */
-StorageManager::Result StorageManager::updateFamilyDataEx(const uint64_t& family_id, const std::string& new_name)
+commons::Result StorageManager::updateFamilyDataEx(const uint64_t& family_id, const std::string& new_name)
 {
     if (new_name.empty())
     {
-        return Result::InvalidInput;
+        return commons::Result::InvalidInput;
     }
     
     if (!connected) 
     {
         if (!initializeDatabase(""))
         {
-            return Result::DbError;
+            return commons::Result::DbError;
         } 
     }
 
@@ -673,7 +673,7 @@ StorageManager::Result StorageManager::updateFamilyDataEx(const uint64_t& family
 
     if (ret_code != SQLITE_OK)
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     } 
 
     sqlite3_bind_text(stmt, 1, new_name.c_str(), -1, SQLITE_TRANSIENT);
@@ -683,13 +683,13 @@ StorageManager::Result StorageManager::updateFamilyDataEx(const uint64_t& family
     if (ret_code != SQLITE_DONE) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     int changes = sqlite3_changes(db_handle);
     sqlite3_finalize(stmt);
 
-    return (changes > 0) ? Result::Ok : Result::NotFound;
+    return (changes > 0) ? commons::Result::Ok : commons::Result::NotFound;
 }
 
 /**
@@ -698,23 +698,23 @@ StorageManager::Result StorageManager::updateFamilyDataEx(const uint64_t& family
  * @param member_id ID of the member to update.
  * @param new_name Name to update to.
  * @param new_nickname Nickname to update to.
- * @return StorageManager::Result 
+ * @return commons::Result 
  */
-StorageManager::Result StorageManager::updateMemberDataEx(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname)
+commons::Result StorageManager::updateMemberDataEx(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname)
 {
     // Check if we have at least one field to update
     bool update_name = !new_name.empty();
     bool update_nickname = !new_nickname.empty();
     if (!update_name && !update_nickname)
     {
-        return Result::InvalidInput;
+        return commons::Result::InvalidInput;
     }
 
     if (!connected) 
     {
         if (!initializeDatabase(""))
         {
-            return Result::DbError;
+            return commons::Result::DbError;
         }
     }
 
@@ -739,7 +739,7 @@ StorageManager::Result StorageManager::updateMemberDataEx(const uint64_t& member
 
     if (ret_code != SQLITE_OK)
     {
-        return Result::DbError;
+        return commons::Result::DbError;
     } 
 
     int param_index = 1;
@@ -757,13 +757,13 @@ StorageManager::Result StorageManager::updateMemberDataEx(const uint64_t& member
     if (ret_code != SQLITE_DONE) 
     {
         sqlite3_finalize(stmt);
-        return Result::DbError;
+        return commons::Result::DbError;
     }
 
     int changes = sqlite3_changes(db_handle);
     sqlite3_finalize(stmt);
 
-    return (changes > 0) ? Result::Ok : Result::NotFound;
+    return (changes > 0) ? commons::Result::Ok : commons::Result::NotFound;
 }
 
 /**
@@ -826,4 +826,76 @@ void StorageManager::disconnect()
     }
 
     connected = false;
+}
+
+/**
+ * @brief List all families in the database.
+ * 
+ * @return std::vector<Family> Vector of families with IDs
+ */
+std::vector<Family> StorageManager::listFamilies()
+{
+    std::vector<Family> families;
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return families;
+        }
+    }
+
+    const char* sql = "SELECT Family_ID, Family_Name FROM FamilyInfo ORDER BY Family_ID;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        return families;
+    }
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        uint64_t id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        std::string name_str = name ? reinterpret_cast<const char*>(name) : std::string();
+        families.emplace_back(id, name_str);
+    }
+    sqlite3_finalize(stmt);
+    return families;
+}
+
+/**
+ * @brief List all members of a specific family.
+ * 
+ * @param family_id ID of the family whose members to list
+ * @return std::vector<Member> Vector of members with IDs
+ */
+std::vector<Member> StorageManager::listMembersOfFamily(uint64_t family_id)
+{
+    std::vector<Member> members;
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return members;
+        }
+    }
+
+    const char* sql = "SELECT Member_ID, Member_Name, Member_Nick_Name FROM MemberInfo WHERE Family_ID = ? ORDER BY Member_ID;";
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        return members;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        uint64_t id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        const unsigned char* name = sqlite3_column_text(stmt, 1);
+        const unsigned char* nick = sqlite3_column_text(stmt, 2);
+        std::string name_str = name ? reinterpret_cast<const char*>(name) : std::string();
+        std::string nick_str = nick ? reinterpret_cast<const char*>(nick) : std::string();
+        members.emplace_back(id, name_str, nick_str);
+    }
+    sqlite3_finalize(stmt);
+    return members;
 }

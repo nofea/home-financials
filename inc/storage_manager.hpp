@@ -16,21 +16,13 @@ public:
 
     bool initializeDatabase(const std::string& dbPath);
 
-    // Simple result codes for operations
-    enum class Result {
-        Ok = 0,
-        InvalidInput = 1,
-        NotFound = 2,
-        DbError = 3,
-    };
-
     // Backwards-compatible boolean wrappers are kept; prefer the Ex versions
     bool saveMemberData(const Member& member, const uint64_t family_id);
     bool saveFamilyData(const Family& family);
 
     // Extended APIs that return a Result code and optionally an out id
-    Result saveMemberDataEx(const Member& member, const uint64_t family_id, uint64_t* out_member_id = nullptr);
-    Result saveFamilyDataEx(const Family& family, uint64_t* out_family_id = nullptr);
+    commons::Result saveMemberDataEx(const Member& member, const uint64_t family_id, uint64_t* out_member_id = nullptr);
+    commons::Result saveFamilyDataEx(const Family& family, uint64_t* out_family_id = nullptr);
 
     Member* getMemberData(const uint64_t& member_id);
     Family* getFamilyData(const uint64_t& family_id);
@@ -40,15 +32,18 @@ public:
     bool updateMemberData(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname);
 
     // Extended delete/update APIs returning Result codes
-    Result deleteMemberDataEx(const uint64_t& member_id);
-    Result deleteFamilyDataEx(const uint64_t& family_id);
+    commons::Result deleteMemberDataEx(const uint64_t& member_id);
+    commons::Result deleteFamilyDataEx(const uint64_t& family_id);
 
-    Result updateFamilyDataEx(const uint64_t& family_id, const std::string& new_name);
-    Result updateMemberDataEx(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname);
+    commons::Result updateFamilyDataEx(const uint64_t& family_id, const std::string& new_name);
+    commons::Result updateMemberDataEx(const uint64_t& member_id, const std::string& new_name, const std::string& new_nickname);
 
     bool deleteMemberData(const uint64_t& member_id);
     bool deleteFamilyData(const uint64_t& family_id);
 
+    // Listing helpers for UI
+    std::vector<Family> listFamilies();
+    std::vector<Member> listMembersOfFamily(uint64_t family_id);
 
 private:
     // Owned SQLite connection handle (nullptr when not connected)
