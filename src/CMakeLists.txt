@@ -8,7 +8,7 @@ set(LIB_SRC
     home_manager.cpp
     ui_manager.cpp
     tui_manager.cpp
-    io_interface.cpp
+    terminal_io.cpp
 )
 
 add_library(home_financials_lib STATIC ${LIB_SRC})

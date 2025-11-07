@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui_manager.hpp"
-#include "io_interface.hpp"
+#include "terminal_io.hpp"
 #include <memory>
 #include <vector>
 #include <cstdint>
