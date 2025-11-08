@@ -56,6 +56,9 @@ Design intent: keep UI thin and push logic into `HomeManager`; isolate DB into `
 
   // follow-up code
 
+- Prefer passing non-trivial types (for example: `std::string`, `std::vector`, `std::map`, or domain classes like `Family`/`Member`) by const-reference (`const T&`) when the function only needs to read them. Use pass-by-value only when the function needs to take ownership or intends to move from the parameter; in that case, document the move semantics and consider `T param` + `std::move(param)` idiom. Small/trivial types (integers, pointers, small structs) shall also be passed by const-reference.
+
+
 ## Build & test (essential commands)
 
 - Preferred workflow (project Makefile wrapper):
