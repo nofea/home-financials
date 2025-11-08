@@ -9,6 +9,7 @@ set(LIB_SRC
     reader.cpp
     bank_reader.cpp
     canara_bank_reader.cpp
+    reader_factory.cpp
     ui_manager.cpp
     tui_manager.cpp
     terminal_io.cpp

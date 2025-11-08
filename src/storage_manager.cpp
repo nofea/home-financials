@@ -1148,6 +1148,44 @@ commons::Result StorageManager::getBankIdByName(const std::string &bank_name, ui
     return commons::Result::Ok;
 }
 
+commons::Result StorageManager::getBankNameById(const uint64_t bank_id, std::string* out_name)
+{
+    if (!out_name)
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    const char* sql = "SELECT Bank_Name FROM BankList WHERE Bank_ID = ? LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return commons::Result::NotFound;
+    }
+
+    const unsigned char* txt = sqlite3_column_text(stmt, 0);
+    *out_name = txt ? reinterpret_cast<const char*>(txt) : std::string();
+    sqlite3_finalize(stmt);
+    return commons::Result::Ok;
+}
+
 commons::Result StorageManager::getBankAccountById(const uint64_t bank_account_id, BankAccountRow* out_row)
 {
     if (!out_row)

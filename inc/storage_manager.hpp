@@ -81,6 +81,10 @@ public:
     // commons::Result::NotFound when no match exists.
     commons::Result getBankIdByName(const std::string &bank_name, uint64_t* out_bank_id);
 
+    // Resolve a Bank_ID to its Bank_Name. Returns Ok and writes to out_name
+    // when found, NotFound when the id does not exist, or DbError on DB errors.
+    commons::Result getBankNameById(const uint64_t bank_id, std::string* out_name);
+
     // Struct representing a persisted bank-account row
     struct BankAccountRow
     {

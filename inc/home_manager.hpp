@@ -54,6 +54,18 @@ public:
                                         const std::string &bank_name,
                                         uint64_t* out_bank_account_id = nullptr);
 
+    // Convenience overloads: accept bank id or bank name and let the
+    // HomeManager create the appropriate reader using ReaderFactory.
+    commons::Result importBankStatement(const std::string &filePath,
+                                        const uint64_t member_id,
+                                        const uint64_t bank_id,
+                                        uint64_t* out_bank_account_id = nullptr);
+
+    commons::Result importBankStatement(const std::string &filePath,
+                                        const uint64_t member_id,
+                                        const std::string &bank_name,
+                                        uint64_t* out_bank_account_id = nullptr);
+
 private:
     std::unique_ptr<StorageManager> ptr_storage;
 };

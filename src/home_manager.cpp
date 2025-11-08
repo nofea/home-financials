@@ -1,4 +1,5 @@
 #include "home_manager.hpp"
+#include "reader_factory.hpp"
 
 /**
  * @brief Construct a new HomeManager object
@@ -230,4 +231,35 @@ commons::Result HomeManager::importBankStatement(BankReader &reader,
 		return r;
 	}
 	return importBankStatement(reader, filePath, member_id, bank_id, out_bank_account_id);
+}
+
+// Convenience: create reader via ReaderFactory using bank id and import
+commons::Result HomeManager::importBankStatement(const std::string &filePath,
+												 const uint64_t member_id,
+												 const uint64_t bank_id,
+												 uint64_t* out_bank_account_id)
+{
+	auto reader = ReaderFactory::createByBankId(ptr_storage.get(), bank_id);
+	if (!reader)
+	{
+		return commons::Result::NotFound; // no reader for this bank
+	}
+
+	return importBankStatement(*reader, filePath, member_id, bank_id, out_bank_account_id);
+}
+
+// Convenience: resolve name -> id then use ReaderFactory to create reader
+commons::Result HomeManager::importBankStatement(const std::string &filePath,
+												 const uint64_t member_id,
+												 const std::string &bank_name,
+												 uint64_t* out_bank_account_id)
+{
+	uint64_t bank_id = 0;
+	auto r = ptr_storage->getBankIdByName(bank_name, &bank_id);
+	if (r != commons::Result::Ok)
+	{
+		return r;
+	}
+
+	return importBankStatement(filePath, member_id, bank_id, out_bank_account_id);
 }

@@ -1,5 +1,6 @@
 #include "tui_manager.hpp"
 #include "canara_bank_reader.hpp"
+#include "reader_factory.hpp"
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -559,6 +560,28 @@ void TUIManager::run()
                     break;
                 }
 
+                // Show supported/registered readers to help the user choose
+                auto registeredReaders = ReaderFactory::listRegistered();
+                if (!registeredReaders.empty())
+                {
+                    std::string banksLine = "Supported banks: ";
+                    for (size_t idx = 0; idx < registeredReaders.size(); ++idx)
+                    {
+                        std::string displayName = registeredReaders[idx];
+                        if (!displayName.empty())
+                        {
+                            // Capitalize first letter for nicer display
+                            displayName[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(displayName[0])));
+                        }
+                        banksLine += displayName;
+                        if (idx + 1 < registeredReaders.size())
+                        {
+                            banksLine += ", ";
+                        }
+                    }
+                    io_ptr->printLine(banksLine);
+                }
+
                 io_ptr->printLine("Enter bank id or name (e.g. Canara): ");
                 std::string bankInput; io_ptr->getLine(bankInput);
                 if (bankInput.empty()) {
@@ -582,29 +605,16 @@ void TUIManager::run()
                 if (isNumeric) {
                     try {
                         uint64_t bankId = std::stoull(bankInput);
-                        // Only Canara parser is implemented; check bank name via StorageManager if needed.
-                        // Try to resolve bank id to name and only allow Canara for now.
-                        uint64_t foundBankId = 0;
-                        // We can ask HomeManager's storage for the bank name via getStorageManager
-                        // but that API returns ids; instead we'll attempt to import using Canara parser
-                        CanaraBankReader reader;
-                        res = home_manager.importBankStatement(reader, path, memberId, bankId, &outBankAccountId);
+                        // Use HomeManager convenience overload which creates reader via ReaderFactory
+                        res = home_manager.importBankStatement(path, memberId, bankId, &outBankAccountId);
                     } catch (...) {
                         io_ptr->printLine("Invalid bank id.");
                         break;
                     }
                 } else {
                     // bankInput treated as name
-                    // Only accept "Canara" (case-insensitive) for now
-                    std::string lowerName = bankInput;
-                    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char c){ return std::tolower(c); });
-                    if (lowerName == "canara") {
-                        CanaraBankReader reader;
-                        res = home_manager.importBankStatement(reader, path, memberId, std::string("Canara"), &outBankAccountId);
-                    } else {
-                        io_ptr->printLine("Unsupported bank reader for: " + bankInput + ". Only Canara is supported currently.");
-                        break;
-                    }
+                    // Let HomeManager and ReaderFactory handle selecting the reader by name
+                    res = home_manager.importBankStatement(path, memberId, bankInput, &outBankAccountId);
                 }
 
                 if (res != commons::Result::Ok) {

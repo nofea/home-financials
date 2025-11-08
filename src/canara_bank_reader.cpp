@@ -1,5 +1,7 @@
 #include "canara_bank_reader.hpp"
 
+#include "reader_registration.hpp"
+
 #include <sstream>
 #include <algorithm>
 #include <cctype>
@@ -152,3 +154,6 @@ std::optional<BankReader::BankAccountInfo> CanaraBankReader::extractAccountInfo(
     info.closingBalancePaise = *m_closingPaise;
     return info;
 }
+
+// Static registration using the convenience macro
+REGISTER_BANK_READER("Canara", CanaraBankReader)
