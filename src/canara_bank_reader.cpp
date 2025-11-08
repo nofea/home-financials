@@ -6,88 +6,113 @@
 #include <algorithm>
 #include <cctype>
 
-namespace {
-// Trim helpers
-inline std::string trim(const std::string &str)
+namespace 
 {
-    size_t init_str_size = 0;
-
-    while (init_str_size < str.size() && std::isspace(static_cast<unsigned char>(str[init_str_size])))
+    // Trim helpers
+    /**
+     * @brief Trims whitespace from the beginning and end of a string.
+     * 
+     * @param str String to trim.
+     * @return std::string 
+     */
+    inline std::string trim(const std::string &str)
     {
-        ++init_str_size;
-    }
+        size_t init_str_size = 0;
 
-    size_t end_str_size = str.size();
-
-    while (end_str_size > init_str_size && std::isspace(static_cast<unsigned char>(str[end_str_size-1])))
-    {
-        --end_str_size;
-    }
-
-    return str.substr(init_str_size, end_str_size - init_str_size);
-}
-
-// Basic CSV line parser that respects double quotes and returns fields
-inline std::vector<std::string> parseCsvLine(const std::string &line)
-{
-    std::vector<std::string> out;
-    std::string cur;
-    bool inQuotes = false;
-
-    for (size_t index = 0; index < line.size(); ++index) 
-    {
-        char character = line[index];
-
-        if (character == '"') 
+        while (init_str_size < str.size() && std::isspace(static_cast<unsigned char>(str[init_str_size])))
         {
-            if (inQuotes && index + 1 < line.size() && line[index+1] == '"') 
+            ++init_str_size;
+        }
+
+        size_t end_str_size = str.size();
+
+        while (end_str_size > init_str_size && std::isspace(static_cast<unsigned char>(str[end_str_size-1])))
+        {
+            --end_str_size;
+        }
+
+        return str.substr(init_str_size, end_str_size - init_str_size);
+    }
+
+    // Basic CSV line parser that respects double quotes and returns fields
+    /**
+     * @brief Parses a CSV line into fields.
+     * 
+     * @param line CSV line to parse.
+     * @return std::vector<std::string>
+     */
+    inline std::vector<std::string> parseCsvLine(const std::string &line)
+    {
+        std::vector<std::string> out;
+        std::string cur;
+        bool inQuotes = false;
+
+        for (size_t index = 0; index < line.size(); ++index) 
+        {
+            char character = line[index];
+
+            if (character == '"') 
             {
-                // escaped quote
-                cur.push_back('"');
-                ++index;
+                if (inQuotes && index + 1 < line.size() && line[index+1] == '"') 
+                {
+                    // escaped quote
+                    cur.push_back('"');
+                    ++index;
+                } 
+                else 
+                {
+                    inQuotes = !inQuotes;
+                }
             } 
-            else 
+            else if (character == ',' && !inQuotes) 
             {
-                inQuotes = !inQuotes;
+                out.push_back(trim(cur));
+                cur.clear();
+            } 
+            else {
+                cur.push_back(character);
             }
-        } 
-        else if (character == ',' && !inQuotes) 
-        {
-            out.push_back(trim(cur));
-            cur.clear();
-        } 
-        else {
-            cur.push_back(character);
         }
+
+        out.push_back(trim(cur));
+
+        return out;
     }
 
-    out.push_back(trim(cur));
-
-    return out;
-}
-
-// Normalize the account number field as seen in the sample which may be
-// represented like =""500012456   "" or plain strings. We remove
-// any equal signs and double-quote artifacts and trim whitespace.
-inline std::string normalizeAccountField(const std::string &str)
-{
-    std::string t;
-
-    for (char character : str) 
+    // Normalize the account number field as seen in the sample which may be
+    // represented like =""500012456   "" or plain strings. We remove
+    // any equal signs and double-quote artifacts and trim whitespace.
+    /**
+     * @brief Normalizes the account number field.
+     * 
+     * @param str String to normalize.
+     * @return std::string 
+     */
+    inline std::string normalizeAccountField(const std::string &str)
     {
-        if (character == '"' || character == '=')
+        std::string t;
+
+        for (char character : str) 
         {
-            continue;
+            if (character == '"' || character == '=')
+            {
+                continue;
+            }
+
+            t.push_back(character);
         }
 
-        t.push_back(character);
+        // trim
+        return trim(t);
     }
-
-    // trim
-    return trim(t);
-}
 } // namespace
 
+/**
+ * @brief Parses the input stream for Canara Bank statements.
+ * 
+ * @param in Input stream to parse.
+ * @return commons::Result 
+ */
 commons::Result CanaraBankReader::parse(std::istream &in)
 {
     m_accountNumber.reset();
@@ -141,6 +166,11 @@ commons::Result CanaraBankReader::parse(std::istream &in)
     return commons::Result::Ok;
 }
 
+/**
+ * @brief Extracts account information from the parsed CSV data.
+ * 
+ * @return std::optional<BankReader::BankAccountInfo> 
+ */
 std::optional<BankReader::BankAccountInfo> CanaraBankReader::extractAccountInfo() const
 {
     if (!m_accountNumber || !m_openingPaise || !m_closingPaise)

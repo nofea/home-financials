@@ -4,8 +4,14 @@
 #include <algorithm>
 #include <cctype>
 
-namespace {
+namespace 
+{
     // Registry of bank name (lowercase) -> factory function
+    /**
+     * @brief Gets the registry of bank reader factory functions.
+     * 
+     * @return std::map<std::string, ReaderFactory::FactoryFn>& 
+     */
     static std::map<std::string, ReaderFactory::FactoryFn> &registry()
     {
         static std::map<std::string, ReaderFactory::FactoryFn> inst;
@@ -13,6 +19,11 @@ namespace {
     }
 
     // Mutex to protect registry access
+    /**
+     * @brief Gets the mutex for protecting registry access.
+     * 
+     * @return std::mutex& 
+     */
     static std::mutex &registryMutex()
     {
         static std::mutex m;
@@ -20,43 +31,92 @@ namespace {
     }
 
     // Helper to lowercase a string for canonical lookups
-    static std::string toLower(const std::string &s)
+    /**
+     * @brief Converts a string to lowercase.
+     * 
+     * @param str 
+     * @return std::string 
+     */
+    static std::string toLower(const std::string &str)
     {
-        std::string out = s;
-        std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c){ return std::tolower(c); });
+        std::string out = str;
+        std::transform(out.begin(), out.end(), out.begin(), [](unsigned char c)
+            { return std::tolower(c); });
+
         return out;
     }
 }
 
+/**
+ * @brief Registers a bank reader factory function.
+ * 
+ * @param bank_name Name of the bank.
+ * @param fn Factory function to register.
+ */
 void ReaderFactory::registerReader(const std::string &bank_name, FactoryFn fn)
 {
-    if (bank_name.empty() || !fn) return;
+    if (bank_name.empty() || !fn)
+    {
+        return;
+    }
+
     std::string key = toLower(bank_name);
     std::lock_guard<std::mutex> lk(registryMutex());
     registry()[key] = std::move(fn);
 }
 
+/**
+ * @brief Unregisters a bank reader factory function.
+ * 
+ * @param bank_name Name of the bank.
+ * @return true if unregistered successfully.
+ * @return false if the bank was not found.
+ */
 bool ReaderFactory::unregisterReader(const std::string &bank_name)
 {
     std::string key = toLower(bank_name);
     std::lock_guard<std::mutex> lk(registryMutex());
     auto &r = registry();
     auto it = r.find(key);
-    if (it == r.end()) return false;
+
+    if (it == r.end()) 
+    {
+        return false;
+    } 
+
     r.erase(it);
+
     return true;
 }
 
+/**
+ * @brief Creates a bank reader by bank name.
+ * 
+ * @param bank_name Name of the bank.
+ * @return std::unique_ptr<BankReader> 
+ */
 std::unique_ptr<BankReader> ReaderFactory::createByBankName(const std::string& bank_name)
 {
     std::string key = toLower(bank_name);
     std::lock_guard<std::mutex> lk(registryMutex());
     auto &r = registry();
     auto it = r.find(key);
-    if (it == r.end()) return nullptr;
+
+    if (it == r.end()) 
+    {
+        return nullptr;
+    }
+
     return (it->second)();
 }
 
+/**
+ * @brief Creates a bank reader by bank ID.
+ * 
+ * @param storage Storage manager to query bank name.
+ * @param bank_id Bank ID.
+ * @return std::unique_ptr<BankReader> 
+ */
 std::unique_ptr<BankReader> ReaderFactory::createByBankId(StorageManager* storage, uint64_t bank_id)
 {
     if (!storage)
@@ -66,6 +126,7 @@ std::unique_ptr<BankReader> ReaderFactory::createByBankId(StorageManager* storag
 
     std::string name;
     auto r = storage->getBankNameById(bank_id, &name);
+
     if (r != commons::Result::Ok)
     {
         return nullptr;
@@ -74,15 +135,22 @@ std::unique_ptr<BankReader> ReaderFactory::createByBankId(StorageManager* storag
     return createByBankName(name);
 }
 
+/**
+ * @brief Lists all registered bank reader factory functions.
+ * 
+ * @return std::vector<std::string> 
+ */
 std::vector<std::string> ReaderFactory::listRegistered()
 {
     std::lock_guard<std::mutex> lk(registryMutex());
     std::vector<std::string> out;
     out.reserve(registry().size());
+
     for (const auto &p : registry())
     {
         out.push_back(p.first);
     }
+
     return out;
 }
 

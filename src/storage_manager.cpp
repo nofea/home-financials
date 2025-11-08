@@ -36,6 +36,7 @@ bool StorageManager::initializeDatabase(const std::string& dbPath)
     // placeholder), use it. Otherwise, try to infer project root and use
     // project_root/homefinancials.db
     std::string chosenPath = dbPath;
+
     if (chosenPath.empty() || chosenPath == "path/to/database") 
     {
         namespace fs = std::filesystem;
@@ -53,6 +54,7 @@ bool StorageManager::initializeDatabase(const std::string& dbPath)
         {
             projectRoot = fs::current_path();
         }
+
         fs::path dbPathFs = projectRoot / "homefinancials.db";
         chosenPath = dbPathFs.string();
     }
@@ -141,6 +143,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
 
     sqlite3* db = nullptr;
     int ret_code = sqlite3_open(dbPath.string().c_str(), &db);
+
     if (ret_code != SQLITE_OK) 
     {
         std::cerr << "Cannot open SQLite DB: " << (db ? sqlite3_errmsg(db) : "(no handle)") << std::endl;
@@ -151,6 +154,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
     // Enable foreign key enforcement
     char* errmsg = nullptr;
     ret_code = sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nullptr, nullptr, &errmsg);
+
     if (ret_code != SQLITE_OK) 
     {
         std::cerr << "Failed to enable foreign keys: " << (errmsg ? errmsg : "") << std::endl;
@@ -160,6 +164,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
     for (const auto &p : table_ddls) 
     {
         ret_code = sqlite3_exec(db, p.second, nullptr, nullptr, &errmsg);
+
         if (ret_code != SQLITE_OK) 
         {
             std::cerr << "Error creating table '" << p.first << "': " << (errmsg ? errmsg : "") << std::endl;
@@ -175,9 +180,11 @@ void StorageManager::dbInit(const std::string& dbPathStr)
     const char* countBanksSql = "SELECT COUNT(1) FROM BankList;";
     sqlite3_stmt* countStmt = nullptr;
     ret_code = sqlite3_prepare_v2(db, countBanksSql, -1, &countStmt, nullptr);
+
     if (ret_code == SQLITE_OK)
     {
         ret_code = sqlite3_step(countStmt);
+
         if (ret_code == SQLITE_ROW)
         {
             sqlite3_int64 bankCount = sqlite3_column_int64(countStmt, 0);
@@ -186,6 +193,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
                 const char* insertSql = "INSERT INTO BankList (Bank_Name) VALUES (?);";
                 sqlite3_stmt* insStmt = nullptr;
                 const char* banks[] = {"Canara", "SBI", "Axis", "HDFC", "PNB"};
+
                 for (const char* bn : banks)
                 {
                     // Ensure stmt pointer does not carry over from previous iteration
@@ -194,6 +202,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
                     {
                         sqlite3_bind_text(insStmt, 1, bn, -1, SQLITE_TRANSIENT);
                         ret_code = sqlite3_step(insStmt);
+                        
                         if (ret_code != SQLITE_DONE)
                         {
                             std::cerr << "Failed to insert bank '" << bn << "': " << sqlite3_errmsg(db) << std::endl;
