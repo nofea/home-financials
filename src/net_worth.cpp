@@ -1,6 +1,7 @@
 #include "net_worth.hpp"
 
 #include <vector>
+#include <memory>
 
 NetWorth::NetWorth(StorageManager* storage)
 {
@@ -23,8 +24,8 @@ commons::Result NetWorth::computeMemberNetWorth(const uint64_t member_id, long l
         return commons::Result::DbError;
     }
 
-    // Verify member exists
-    Member* m = storage_ptr->getMemberData(member_id);
+    // Verify member exists (take ownership of the returned raw pointer)
+    std::unique_ptr<Member> m(storage_ptr->getMemberData(member_id));
 
     if (!m)
     {
@@ -57,8 +58,8 @@ commons::Result NetWorth::computeFamilyNetWorth(const uint64_t family_id, long l
         return commons::Result::DbError;
     }
 
-    // Verify family exists
-    Family* f = storage_ptr->getFamilyData(family_id);
+    // Verify family exists (take ownership of the returned raw pointer)
+    std::unique_ptr<Family> f(storage_ptr->getFamilyData(family_id));
 
     if (!f)
     {
