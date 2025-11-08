@@ -668,7 +668,16 @@ void TUIManager::run()
                 std::string sign = net_paise < 0 ? "-" : "";
                 std::ostringstream oss;
                 oss << "Member " << mid << " net worth: " << sign << rupees << ".";
-                if (paise < 10) oss << "0" << paise; else oss << paise;
+                
+                if (paise < 10)
+                {
+                    oss << "0" << paise;
+                }
+                else
+                {
+                    oss << paise;
+                }
+                
                 io_ptr->printLine(oss.str());
 
                 break;
@@ -711,8 +720,17 @@ void TUIManager::run()
                 int paise = static_cast<int>(std::llabs(family_paise % 100));
                 std::string sign = family_paise < 0 ? "-" : "";
                 std::ostringstream oss;
+               
                 oss << "Family " << fid << " net worth: " << sign << rupees << ".";
-                if (paise < 10) oss << "0" << paise; else oss << paise;
+                if (paise < 10)
+                {
+                    oss << "0" << paise;
+                }
+                else
+                {
+                    oss << paise;
+                }
+
                 io_ptr->printLine(oss.str());
 
                 break;
