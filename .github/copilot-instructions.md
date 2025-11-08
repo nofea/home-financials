@@ -16,7 +16,40 @@ Design note: UI is intentionally thin. Business rules live in `HomeManager`; DB 
 - Preserve user-facing strings (tests assert exact messages such as `ID:` or "added successfully").
 - Use dependency injection for I/O: `TUIManager` accepts an `IOInterface`; tests inject `MockIO` (`tests/mock_io.hpp`).
 
+Variable naming (must-follow)
+
+- Never declare single-letter variable names such as `s`, `i`, `c`, `k`, etc. Use human-readable names that describe the variable's purpose at the point of declaration. Examples:
+  - `s` -> `str` or `line` or `text`
+  - `i` -> `index` or `pos` or `rowIndex`
+  - `c` -> `character` or `ch`
+  - `k` -> `key` or `columnKey`
+
+- Prefer names that clarify intent (e.g. `accountNumber`, `openingBalancePaise`, `transactionDate`). This improves readability, tests, and code reviews.
+
+- Do not rename existing identifiers in older files just to satisfy this rule unless you are updating surrounding code in the same change set — apply the rule to all new or refactored code going forward.
+
+
 ## Tests — patterns to follow
+
+## Coding style (must-follow)
+
+- Always use braces for `if`, `while`, `for`, and other control statements even when the body is a single line. For example prefer:
+
+  -
+
+    if (condition)
+    {
+        doSomething();
+    }
+
+  over a single-line form.
+
+- Never write control statements in a single-line form (e.g., `if (cond) doSomething();`). This reduces subtle bugs and improves diff clarity.
+
+- Always place the opening brace on the next line (Allman style). Closing brace should be on its own line.
+
+These rules help maintain a consistent, easily-reviewable codebase and reduce errors when modifying control-flow blocks.
+
 
 - Tests queue inputs via `MockIO::queueInput()` and call `tui->run()`. They assert outputs with `mock->getOutput()` / `getErrors()`.
 - When adding features that print IDs, keep the `ID:` format so tests can parse created IDs consistently.

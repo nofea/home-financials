@@ -113,6 +113,30 @@ void StorageManager::dbInit(const std::string& dbPathStr)
             );
             )"
         }
+        ,
+        {
+            "BankList", R"(
+            CREATE TABLE IF NOT EXISTS BankList (
+            Bank_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Bank_Name TEXT NOT NULL UNIQUE
+            );
+            )"
+        },
+
+        {
+            "BankAccounts", R"(
+            CREATE TABLE IF NOT EXISTS BankAccounts (
+            BankAccount_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Bank_ID INTEGER NOT NULL,
+            Member_ID INTEGER NOT NULL,
+            Account_Number TEXT NOT NULL,
+            Opening_Balance INTEGER NOT NULL,
+            Closing_Balance INTEGER NOT NULL,
+            FOREIGN KEY(Bank_ID) REFERENCES BankList(Bank_ID),
+            FOREIGN KEY(Member_ID) REFERENCES MemberInfo(Member_ID) ON DELETE CASCADE
+            );
+            )"
+        }
     };
 
     sqlite3* db = nullptr;
@@ -145,6 +169,39 @@ void StorageManager::dbInit(const std::string& dbPathStr)
         {
             std::cout << "Checked/created table: " << p.first << std::endl;
         }
+    }
+
+    // Prepopulate BankList with known banks if it's empty.
+    const char* countBanksSql = "SELECT COUNT(1) FROM BankList;";
+    sqlite3_stmt* countStmt = nullptr;
+    ret_code = sqlite3_prepare_v2(db, countBanksSql, -1, &countStmt, nullptr);
+    if (ret_code == SQLITE_OK)
+    {
+        ret_code = sqlite3_step(countStmt);
+        if (ret_code == SQLITE_ROW)
+        {
+            sqlite3_int64 bankCount = sqlite3_column_int64(countStmt, 0);
+            if (bankCount == 0)
+            {
+                const char* insertSql = "INSERT INTO BankList (Bank_Name) VALUES (?);";
+                sqlite3_stmt* insStmt = nullptr;
+                const char* banks[] = {"Canara", "SBI", "Axis", "HDFC", "PNB"};
+                for (const char* bn : banks)
+                {
+                    if (sqlite3_prepare_v2(db, insertSql, -1, &insStmt, nullptr) == SQLITE_OK)
+                    {
+                        sqlite3_bind_text(insStmt, 1, bn, -1, SQLITE_TRANSIENT);
+                        ret_code = sqlite3_step(insStmt);
+                        if (ret_code != SQLITE_DONE)
+                        {
+                            std::cerr << "Failed to insert bank '" << bn << "': " << sqlite3_errmsg(db) << std::endl;
+                        }
+                        sqlite3_finalize(insStmt);
+                    }
+                }
+            }
+        }
+        sqlite3_finalize(countStmt);
     }
 
     sqlite3_close(db);
