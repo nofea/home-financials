@@ -1,15 +1,28 @@
 #include "ui_manager.hpp"
 #include <iostream>
 
+/**
+ * @brief Construct a new UIManager::UIManager object
+ * 
+ */
 UIManager::UIManager()
 {
 }
 
+/**
+ * @brief Destroy the UIManager::UIManager object
+ * 
+ */
 UIManager::~UIManager()
 {
 }
 
-void UIManager::showError(commons::Result res)
+/**
+ * @brief Show an error message to the user
+ * 
+ * @param res The result containing error information
+ */
+void UIManager::showError(const commons::Result& res)
 {
 	if (res == commons::Result::Ok) 
 	{
@@ -19,7 +32,13 @@ void UIManager::showError(commons::Result res)
 	std::cerr << errorMessage(res) << std::endl;
 }
 
-std::string UIManager::errorMessage(commons::Result res)
+/**
+ * @brief Translate an error code to a human-friendly message.
+ * 
+ * @param res The result containing error information	
+ * @return std::string 
+ */
+std::string UIManager::errorMessage(const commons::Result& res)
 {
 	switch (res) 
     {

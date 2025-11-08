@@ -13,7 +13,7 @@ public:
     TUIManager();
     
     // Constructor for testing - accepts injected IOInterface
-    explicit TUIManager(std::unique_ptr<IOInterface> io);
+    explicit TUIManager(std::unique_ptr<IOInterface> io_ptr);
     
     ~TUIManager() override;
 
@@ -33,24 +33,24 @@ public:
     };
 
     commons::Result addFamily(const std::string& name) override;
-    commons::Result deleteFamily(uint64_t family_id) override;
+    commons::Result deleteFamily(const uint64_t& family_id) override;
 
-    commons::Result addMember(uint64_t family_id, const Member& member) override;
-    commons::Result updateMember(uint64_t member_id,
+    commons::Result addMember(const uint64_t& family_id, const Member& member) override;
+    commons::Result updateMember(const uint64_t& member_id,
                                 const std::string& new_name,
                                 const std::string& new_nickname) override;
 
-    commons::Result deleteMember(uint64_t member_id) override;
+    commons::Result deleteMember(const uint64_t& member_id) override;
     commons::Result deleteMembers(const std::vector<uint64_t>& member_ids) override;
 
     // Override showError to use the IOInterface
-    void showError(commons::Result res);
+    void showError(const commons::Result& res);
 
     // Start the terminal UI loop; this method handles all user interaction
     // (welcome page, menu display, input parsing and dispatch).
     void run();
 
 private:
-    std::unique_ptr<IOInterface> io;
+    std::unique_ptr<IOInterface> io_ptr;
     HomeManager home_manager;
 };

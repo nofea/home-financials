@@ -4,88 +4,183 @@
 #include <algorithm>
 #include <cctype>
 
+/**
+ * @brief Construct a new TUIManager::TUIManager object
+ * 
+ */
 TUIManager::TUIManager()
-    : io(std::make_unique<TerminalIO>())
+    : io_ptr(std::make_unique<TerminalIO>())
 {
 }
 
-TUIManager::TUIManager(std::unique_ptr<IOInterface> io_)
-    : io(std::move(io_))
+/**
+ * @brief Construct a new TUIManager::TUIManager object
+ * 
+ * @param io_ptr Pointer to an IOInterface implementation for I/O operations
+ */
+TUIManager::TUIManager(std::unique_ptr<IOInterface> io_ptr)
+    : io_ptr(std::move(io_ptr))
 {
 }
 
+/**
+ * @brief Destroy the TUIManager::TUIManager object
+ * 
+ */
 TUIManager::~TUIManager()
 {
 }
 
-void TUIManager::showError(commons::Result res)
+/**
+ * @brief Show an error message to the user
+ * 
+ * @param res The result containing error information
+ */
+void TUIManager::showError(const commons::Result& res)
 {
     if (res == commons::Result::Ok) 
     {
         return; // nothing to show for success
     }
 
-    io->printError(errorMessage(res));
+    io_ptr->printError(errorMessage(res));
 }
 
+/**
+ * @brief Add a new family (REQ-1)
+ * 
+ * @param name Name of the family to add
+ * @return commons::Result 
+ */
 commons::Result TUIManager::addFamily(const std::string& name)
 {
     Family f(name);
     uint64_t new_id = 0;
     commons::Result res = home_manager.addFamily(f, &new_id);
-    if (res != commons::Result::Ok) {
+
+    if (res != commons::Result::Ok) 
+    {
         showError(res);
-    } else {
-        io->printLine("Family '" + name + "' added successfully. ID: " + std::to_string(new_id));
+    } 
+    else 
+    {
+        io_ptr->printLine("Family '" + 
+                          name + 
+                          "' added successfully. ID: " + 
+                          std::to_string(new_id));
     }
     return res;
 }
 
-commons::Result TUIManager::deleteFamily(uint64_t family_id)
+/**
+ * @brief Delete a family (REQ-1.1)
+ * 
+ * @param family_id ID of the family to delete
+ * @return commons::Result 
+ */
+commons::Result TUIManager::deleteFamily(const uint64_t& family_id)
 {
     commons::Result res = home_manager.deleteFamily(family_id);
-    if (res != commons::Result::Ok) {
+
+    if (res != commons::Result::Ok) 
+    {
         showError(res);
-    } else {
-        io->printLine("Family " + std::to_string(family_id) + " deleted successfully.");
+    } 
+    else 
+    {
+        io_ptr->printLine("Family " + 
+                           std::to_string(family_id) + 
+                           " deleted successfully.");
     }
+
     return res;
 }
 
-commons::Result TUIManager::addMember(uint64_t family_id, const Member& member)
+/**
+ * @brief Add a new member to a family (REQ-2)
+ * 
+ * @param family_id ID of the family to add the member to
+ * @param member The member to add
+ * @return commons::Result 
+ */
+commons::Result TUIManager::addMember(const uint64_t& family_id, const Member& member)
 {
     uint64_t new_id = 0;
     commons::Result res = home_manager.addMemberToFamily(member, family_id, &new_id);
-    if (res != commons::Result::Ok) {
+
+    if (res != commons::Result::Ok) 
+    {
         showError(res);
-    } else {
-        io->printLine("Member '" + member.getName() + "' added to family " + std::to_string(family_id) + ". ID: " + std::to_string(new_id));
+    } 
+    else 
+    {
+        io_ptr->printLine("Member '" + member.getName() + 
+                          "' added to family " + 
+                          std::to_string(family_id) + 
+                          ". ID: " + std::to_string(new_id));
     }
+
     return res;
 }
 
-commons::Result TUIManager::updateMember(uint64_t member_id, const std::string& new_name, const std::string& new_nickname)
+/**
+ * @brief Update an existing member's information (REQ-2.1)
+ * 
+ * @param member_id 
+ * @param new_name 
+ * @param new_nickname 
+ * @return commons::Result 
+ */
+commons::Result TUIManager::updateMember(const uint64_t& member_id, 
+                                         const std::string& new_name, 
+                                         const std::string& new_nickname)
 {
-    commons::Result res = home_manager.updateMember(member_id, new_name, new_nickname);
-    if (res != commons::Result::Ok) {
+    commons::Result res = 
+        home_manager.updateMember(member_id, new_name, new_nickname);
+    
+    if (res != commons::Result::Ok) 
+    {
         showError(res);
-    } else {
-        io->printLine("Member " + std::to_string(member_id) + " updated successfully.");
+    } 
+    else 
+    {
+        io_ptr->printLine("Member " + 
+                          std::to_string(member_id) + 
+                          " updated successfully.");
     }
     return res;
 }
 
-commons::Result TUIManager::deleteMember(uint64_t member_id)
+/**
+ * @brief Delete a member from a family (REQ-2.2)
+ * 
+ * @param member_id ID of the member to delete
+ * @return commons::Result 
+ */
+commons::Result TUIManager::deleteMember(const uint64_t& member_id)
 {
     commons::Result res = home_manager.deleteMember(member_id);
-    if (res != commons::Result::Ok) {
+
+    if (res != commons::Result::Ok) 
+    {
         showError(res);
-    } else {
-        io->printLine("Member " + std::to_string(member_id) + " deleted successfully.");
+    } 
+    else 
+    {
+        io_ptr->printLine("Member " + 
+                          std::to_string(member_id) + 
+                          " deleted successfully.");
     }
+
     return res;
 }
 
+/**
+ * @brief Delete multiple members from a family (REQ-2.2)
+ * 
+ * @param member_ids IDs of the members to delete
+ * @return commons::Result 
+ */
 commons::Result TUIManager::deleteMembers(const std::vector<uint64_t>& member_ids)
 {
     commons::Result final_res = commons::Result::Ok;
@@ -103,56 +198,82 @@ commons::Result TUIManager::deleteMembers(const std::vector<uint64_t>& member_id
         } 
         else 
         {
-            io->printLine("Member " + std::to_string(id) + " deleted.");
+            io_ptr->printLine("Member " + std::to_string(id) + " deleted.");
         }
     }
 
     return final_res;
 }
 
+/**
+ * @brief Start the terminal UI loop
+ * 
+ */
 void TUIManager::run()
 {
+    // Helper to check non-negative whole numbers (REQ-4, REQ-5)
+    auto is_non_negative_whole_number = [](const std::string& s) -> bool 
+    {
+        if (s.empty())
+        {
+            return false;
+        }
+
+        return std::all_of(s.begin(), s.end(), [](unsigned char ch){ return std::isdigit(ch); });
+    };
+
     // Welcome page
-    io->printLine("Welcome to Home Financials TUI");
-    io->printLine("============================");
+    io_ptr->printLine("Welcome to Home Financials TUI");
+    io_ptr->printLine("============================");
 
     bool running = true;
+
     while (running) 
     {
         // Display menu
-        io->printLine("");
-        io->printLine("Select an option:");
-        io->printLine(" 1) Add Family");
-        io->printLine(" 2) Delete Family");
-        io->printLine(" 3) Add Member to Family");
-        io->printLine(" 4) Update Member");
-        io->printLine(" 5) Delete Member");
-        io->printLine(" 6) Delete Multiple Members");
-        io->printLine(" 7) List Families");
-        io->printLine(" 8) List Members of a Family");
-        io->printLine(" 9) Exit");
-        io->printLine("Choice: ");
+        io_ptr->printLine("");
+        io_ptr->printLine("Select an option:");
+        io_ptr->printLine(" 1) Add Family");
+        io_ptr->printLine(" 2) Delete Family");
+        io_ptr->printLine(" 3) Add Member to Family");
+        io_ptr->printLine(" 4) Update Member");
+        io_ptr->printLine(" 5) Delete Member");
+        io_ptr->printLine(" 6) Delete Multiple Members");
+        io_ptr->printLine(" 7) List Families");
+        io_ptr->printLine(" 8) List Members of a Family");
+        io_ptr->printLine(" 9) Exit");
+        io_ptr->printLine("Choice: ");
 
         std::string line;
 
-        if (!io->getLine(line)) 
+        if (!io_ptr->getLine(line)) 
         {
             // EOF or error
             break;
         }
 
         // trim
-        line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](unsigned char ch){ return !std::isspace(ch); }));
-        line.erase(std::find_if(line.rbegin(), line.rend(), [](unsigned char ch){ return !std::isspace(ch); }).base(), line.end());
+        line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](unsigned char ch)
+            { return !std::isspace(ch); }));
 
-        if (line.empty()) continue;
+        line.erase(std::find_if(line.rbegin(), line.rend(), [](unsigned char ch)
+            { return !std::isspace(ch); }).base(), line.end());
+
+        if (line.empty()) 
+        {
+            continue;
+        }
 
         int choice = 0;
-        try {
-            choice = std::stoi(line);
-        } catch (...) {
 
-            io->printLine("Invalid choice, please enter a number.");
+        try 
+        {
+            choice = std::stoi(line);
+        } 
+        catch (...) 
+        {
+
+            io_ptr->printLine("Invalid choice, please enter a number.");
             continue;
         }
 
@@ -161,7 +282,7 @@ void TUIManager::run()
             choice > static_cast<int>(MenuOption::Exit))
         {
 
-            io->printLine("Invalid choice, please pick a valid menu item.");
+            io_ptr->printLine("Invalid choice, please pick a valid menu item.");
             continue;
         }
 
@@ -171,175 +292,247 @@ void TUIManager::run()
         {
             case MenuOption::AddFamily: 
             {
-
-                io->printLine("Enter family name: ");
+                io_ptr->printLine("Enter family name: ");
                 std::string name;
 
-                io->getLine(name);
-                if (name.empty()) {
+                io_ptr->getLine(name);
 
-                    io->printLine("Family name cannot be empty.");
+                if (name.empty()) 
+                {
+                    io_ptr->printLine("Family name cannot be empty.");
                     break;
                 }
+
                 addFamily(name);
+
                 break;
             }
+
             case MenuOption::DeleteFamily: 
             {
-
-                io->printLine("Enter family id to delete: ");
+                io_ptr->printLine("Enter family id to delete: ");
                 std::string idstr;
 
-                io->getLine(idstr);
-                try {
+                io_ptr->getLine(idstr);
+
+                if (!is_non_negative_whole_number(idstr))
+                {
+                    // REQ-4 and REQ-5 enforcement
+                    io_ptr->printLine("Family id must be a non-negative whole number (REQ-4, REQ-5).");
+                    // Preserve original generic message for existing tests
+                    io_ptr->printLine("Invalid family id.");
+                    break;
+                }
+
+                try 
+                {
                     uint64_t id = std::stoull(idstr);
                     deleteFamily(id);
-                } catch (...) {
-
-                    io->printLine("Invalid family id.");
+                } 
+                catch (...) 
+                {
+                    io_ptr->printLine("Invalid family id.");
                 }
+
                 break;
             }
+
             case MenuOption::AddMember: 
             {
+                io_ptr->printLine("Enter family id to add member to: ");
+                std::string fidstr; io_ptr->getLine(fidstr);
+                io_ptr->printLine("Enter member name: ");
+                std::string mname; io_ptr->getLine(mname);
+                io_ptr->printLine("Enter member nickname (optional): ");
+                std::string mnick; io_ptr->getLine(mnick);
 
+                if (!is_non_negative_whole_number(fidstr))
+                {
+                    // REQ-4 and REQ-5 enforcement
+                    io_ptr->printLine("Family id must be a non-negative whole number (REQ-4, REQ-5).");
+                    io_ptr->printLine("Invalid family id.");
+                    break;
+                }
 
-
-
-
-
-                io->printLine("Enter family id to add member to: ");
-                std::string fidstr; io->getLine(fidstr);
-                io->printLine("Enter member name: ");
-                std::string mname; io->getLine(mname);
-                io->printLine("Enter member nickname (optional): ");
-                std::string mnick; io->getLine(mnick);
-                try {
+                try 
+                {
                     uint64_t fid = std::stoull(fidstr);
-                    if (mname.empty()) {
 
-                        io->printLine("Member name cannot be empty.");
+                    if (mname.empty()) 
+                    {
+                        io_ptr->printLine("Member name cannot be empty.");
                         break;
                     }
+
                     Member m(mname, mnick);
                     addMember(fid, m);
-                } catch (...) {
 
-                    io->printLine("Invalid family id.");
+                } 
+                catch (...) 
+                {
+                    io_ptr->printLine("Invalid family id.");
                 }
                 break;
             }
+
             case MenuOption::UpdateMember: 
             {
 
+                io_ptr->printLine("Enter member id to update: ");
+                std::string midstr; io_ptr->getLine(midstr);
+                io_ptr->printLine("Enter new member name: ");
+                std::string newname; io_ptr->getLine(newname);
+                io_ptr->printLine("Enter new member nickname: ");
+                std::string newnick; io_ptr->getLine(newnick);
 
+                if (!is_non_negative_whole_number(midstr))
+                {
+                    io_ptr->printLine("Member id must be a non-negative whole number (REQ-4, REQ-5).");
+                    io_ptr->printLine("Invalid member id.");
+                    break;
+                }
 
-
-
-
-                io->printLine("Enter member id to update: ");
-                std::string midstr; io->getLine(midstr);
-                io->printLine("Enter new member name: ");
-                std::string newname; io->getLine(newname);
-                io->printLine("Enter new member nickname: ");
-                std::string newnick; io->getLine(newnick);
-                try {
+                try 
+                {
                     uint64_t mid = std::stoull(midstr);
                     updateMember(mid, newname, newnick);
-                } catch (...) {
-
-                    io->printLine("Invalid member id.");
+                } 
+                catch (...) 
+                {
+                    io_ptr->printLine("Invalid member id.");
                 }
+
                 break;
             }
+
             case MenuOption::DeleteMember: 
             {
+                io_ptr->printLine("Enter member id to delete: ");
+                std::string midstr; io_ptr->getLine(midstr);
 
+                if (!is_non_negative_whole_number(midstr))
+                {
+                    io_ptr->printLine("Member id must be a non-negative whole number (REQ-4, REQ-5).");
+                    io_ptr->printLine("Invalid member id.");
+                    break;
+                }
 
-                io->printLine("Enter member id to delete: ");
-                std::string midstr; io->getLine(midstr);
-                try {
+                try 
+                {
                     uint64_t mid = std::stoull(midstr);
                     deleteMember(mid);
-                } catch (...) {
-
-                    io->printLine("Invalid member id.");
+                } 
+                catch (...) 
+                {
+                    io_ptr->printLine("Invalid member id.");
                 }
+
                 break;
             }
+
             case MenuOption::DeleteMultipleMembers: 
             {
-
-
-                io->printLine("Enter member ids to delete separated by spaces: ");
-                std::string idsline; io->getLine(idsline);
+                io_ptr->printLine("Enter member ids to delete separated by spaces: ");
+                std::string idsline; io_ptr->getLine(idsline);
                 std::istringstream iss(idsline);
                 std::vector<uint64_t> ids;
                 std::string token;
                 bool parse_error = false;
-                while (iss >> token) {
-                    try {
+
+                while (iss >> token) 
+                {
+                    if (!is_non_negative_whole_number(token))
+                    {
+                        parse_error = true;
+                        break;
+                    }
+                    try 
+                    {
                         ids.push_back(std::stoull(token));
-                    } catch (...) {
+                    } 
+                    catch (...) 
+                    {
                         parse_error = true;
                         break;
                     }
                 }
-                if (parse_error || ids.empty()) {
 
-                    io->printLine("Invalid input for member ids.");
+                if (parse_error || ids.empty()) 
+                {
+                    io_ptr->printLine("Member ids must be non-negative whole numbers (REQ-4, REQ-5).");
+                    io_ptr->printLine("Invalid input for member ids.");
                     break;
                 }
+
                 deleteMembers(ids);
+
                 break;
             }
 
             case MenuOption::ListFamilies:
             {
                 auto families = home_manager.listFamilies();
+
                 if (families.empty())
                 {
-                    io->printLine("No families found.");
+                    io_ptr->printLine("No families found.");
                 }
                 else
                 {
-                    io->printLine("Families:");
+                    io_ptr->printLine("Families:");
                     for (const auto& fam : families)
                     {
-                        io->printLine("  ID: " + std::to_string(fam.getId()) + " - " + fam.getName());
+                        io_ptr->printLine("  ID: " + std::to_string(fam.getId()) + " - " + fam.getName());
                     }
                 }
+
                 break;
             }
 
             case MenuOption::ListMembersOfFamily:
             {
-                io->printLine("Enter family id to list members: ");
+                io_ptr->printLine("Enter family id to list members: ");
                 std::string fidstr;
-                io->getLine(fidstr);
-                try {
+                io_ptr->getLine(fidstr);
+
+                if (!is_non_negative_whole_number(fidstr))
+                {
+                    io_ptr->printLine("Family id must be a non-negative whole number (REQ-4, REQ-5).");
+                    io_ptr->printLine("Invalid family id.");
+                    break;
+                }
+
+                try 
+                {
                     uint64_t fid = std::stoull(fidstr);
                     auto members = home_manager.listMembersOfFamily(fid);
+
                     if (members.empty())
                     {
-                        io->printLine("No members found for family " + std::to_string(fid) + ".");
+                        io_ptr->printLine("No members found for family " + std::to_string(fid) + ".");
                     }
                     else
                     {
-                        io->printLine("Members of family " + std::to_string(fid) + ":");
+                        io_ptr->printLine("Members of family " + std::to_string(fid) + ":");
+
                         for (const auto& mem : members)
                         {
                             std::string line = "  ID: " + std::to_string(mem.getId()) + " - " + mem.getName();
+
                             if (!mem.getNickname().empty())
                             {
                                 line += " (" + mem.getNickname() + ")";
                             }
-                            io->printLine(line);
+
+                            io_ptr->printLine(line);
                         }
                     }
-                } catch (...) {
-                    io->printLine("Invalid family id.");
+                } 
+                catch (...) 
+                {
+                    io_ptr->printLine("Invalid family id.");
                 }
+
                 break;
             }
 
@@ -348,14 +541,17 @@ void TUIManager::run()
                 running = false;
                 break;
             }
+
             default:
+            {
                 // This shouldn't be reachable because we validated the range above.
 
-                io->printLine("Unknown choice.");
+                io_ptr->printLine("Unknown choice.");
                 break;
+            }
+                
         }
     }
 
-
-    io->printLine("Goodbye.");
+    io_ptr->printLine("Goodbye.");
 }
