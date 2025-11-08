@@ -2,6 +2,7 @@
 #include "test_helpers.hpp"
 #include "home_manager.hpp"
 #include "canara_bank_reader.hpp"
+#include "bank_account.hpp"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -47,16 +48,16 @@ TEST_F(BankImportTest, CanaraCsvImportEndToEnd)
     EXPECT_NE(inserted_id, 0u);
 
     // Verify persisted row via StorageManager helper
-    StorageManager::BankAccountRow row;
+    BankAccount row;
     auto* storage = home()->getStorageManager();
     auto gres = storage->getBankAccountById(inserted_id, &row);
     EXPECT_EQ(gres, commons::Result::Ok);
-    EXPECT_EQ(row.member_id, 1u);
-    EXPECT_EQ(row.account_number, "500012456");
+    EXPECT_EQ(row.getMemberId(), 1u);
+    EXPECT_EQ(row.getAccountNumber(), "500012456");
     // Opening Rs.7,43,483.09 -> 74348309 paise
-    EXPECT_EQ(row.opening_balance_paise, 74348309ll);
+    EXPECT_EQ(row.getOpeningBalancePaise(), 74348309ll);
     // Closing Rs.9,99,999.00 -> 99999900 paise
-    EXPECT_EQ(row.closing_balance_paise, 99999900ll);
+    EXPECT_EQ(row.getClosingBalancePaise(), 99999900ll);
 
     // Cleanup sample file
     if (std::filesystem::exists(csv_path)) std::filesystem::remove(csv_path);

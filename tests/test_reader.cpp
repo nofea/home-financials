@@ -4,6 +4,7 @@
 #include "home_manager.hpp"
 #include "family.hpp"
 #include "member.hpp"
+#include "bank_account.hpp"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -81,9 +82,9 @@ TEST_F(ReaderFactoryHomeManagerTest, ImportByNameAndById)
     EXPECT_EQ(res1, commons::Result::Ok);
     EXPECT_GT(inserted1, 0u);
 
-    StorageManager::BankAccountRow row1;
+    BankAccount row1;
     EXPECT_EQ(home()->getStorageManager()->getBankAccountById(inserted1, &row1), commons::Result::Ok);
-    EXPECT_EQ(row1.account_number, "500012456");
+    EXPECT_EQ(row1.getAccountNumber(), "500012456");
 
     // Resolve bank id and import again by id
     uint64_t bank_id = 0;
@@ -94,9 +95,9 @@ TEST_F(ReaderFactoryHomeManagerTest, ImportByNameAndById)
     EXPECT_EQ(res2, commons::Result::Ok);
     EXPECT_GT(inserted2, 0u);
 
-    StorageManager::BankAccountRow row2;
+    BankAccount row2;
     EXPECT_EQ(home()->getStorageManager()->getBankAccountById(inserted2, &row2), commons::Result::Ok);
-    EXPECT_EQ(row2.account_number, "500012456");
+    EXPECT_EQ(row2.getAccountNumber(), "500012456");
 
     std::filesystem::remove(csv_path);
 }
@@ -145,12 +146,12 @@ TEST_F(HomeManagerImportByIdTest, ImportUsingBankId)
     EXPECT_GT(inserted, 0u);
 
     // Verify via StorageManager
-    StorageManager::BankAccountRow row;
+    BankAccount row;
     auto g = home()->getStorageManager()->getBankAccountById(inserted, &row);
     EXPECT_EQ(g, commons::Result::Ok);
-    EXPECT_EQ(row.account_number, "500012456");
-    EXPECT_EQ(row.opening_balance_paise, 27436909ll);
-    EXPECT_EQ(row.closing_balance_paise, 74348309ll);
+    EXPECT_EQ(row.getAccountNumber(), "500012456");
+    EXPECT_EQ(row.getOpeningBalancePaise(), 27436909ll);
+    EXPECT_EQ(row.getClosingBalancePaise(), 74348309ll);
 
     std::filesystem::remove(csv_path);
 }

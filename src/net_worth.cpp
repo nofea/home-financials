@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include "bank_account.hpp"
 
 NetWorth::NetWorth(StorageManager* storage)
 {
@@ -34,11 +35,11 @@ commons::Result NetWorth::computeMemberNetWorth(const uint64_t member_id, long l
 
     // Sum closing balances of all bank accounts for the member
     long long total_paise = 0;
-    std::vector<StorageManager::BankAccountRow> accounts = storage_ptr->listBankAccountsOfMember(member_id);
+    std::vector<BankAccount> accounts = storage_ptr->listBankAccountsOfMember(member_id);
 
     for (const auto &acct : accounts)
     {
-        total_paise += acct.closing_balance_paise;
+        total_paise += acct.getClosingBalancePaise();
     }
 
     *out_net_worth_paise = total_paise;
@@ -74,11 +75,11 @@ commons::Result NetWorth::computeFamilyNetWorth(const uint64_t family_id, long l
     for (const auto &member : members)
     {
         uint64_t member_id = member.getId();
-        std::vector<StorageManager::BankAccountRow> accounts = storage_ptr->listBankAccountsOfMember(member_id);
+        std::vector<BankAccount> accounts = storage_ptr->listBankAccountsOfMember(member_id);
 
         for (const auto &acct : accounts)
         {
-            family_total_paise += acct.closing_balance_paise;
+            family_total_paise += acct.getClosingBalancePaise();
         }
     }
 
