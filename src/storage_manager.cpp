@@ -188,6 +188,8 @@ void StorageManager::dbInit(const std::string& dbPathStr)
                 const char* banks[] = {"Canara", "SBI", "Axis", "HDFC", "PNB"};
                 for (const char* bn : banks)
                 {
+                    // Ensure stmt pointer does not carry over from previous iteration
+                    insStmt = nullptr;
                     if (sqlite3_prepare_v2(db, insertSql, -1, &insStmt, nullptr) == SQLITE_OK)
                     {
                         sqlite3_bind_text(insStmt, 1, bn, -1, SQLITE_TRANSIENT);
@@ -197,6 +199,10 @@ void StorageManager::dbInit(const std::string& dbPathStr)
                             std::cerr << "Failed to insert bank '" << bn << "': " << sqlite3_errmsg(db) << std::endl;
                         }
                         sqlite3_finalize(insStmt);
+                    }
+                    else
+                    {
+                        std::cerr << "Failed to prepare insert for bank '" << bn << "': " << sqlite3_errmsg(db) << std::endl;
                     }
                 }
             }

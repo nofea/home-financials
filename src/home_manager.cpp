@@ -103,8 +103,7 @@ commons::Result HomeManager::addMemberToFamily(const Member &member, const uint6
 		{
 			return commons::Result::MaxMembersExceeded;
 		}
-		uint16_t members = static_cast<uint16_t>(count); // safe: count < 255
-		(void)members; // keep the variable to document the cast intent
+		// At this point count < 255 so casting to a narrower integer type would be safe
 	}
 
 	uint64_t id = 0;
