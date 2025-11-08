@@ -159,6 +159,50 @@ TEST_F(TUIManagerTest, DeleteFamily_InvalidId)
     EXPECT_TRUE(found_error);
 }
 
+TEST_F(TUIManagerTest, DeleteFamily_NegativeId)
+{
+    // Setup: Try to delete with negative ID
+    simulateMenuChoice("2", {"-1"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, DeleteFamily_DecimalId)
+{
+    // Setup: Try to delete with decimal ID
+    simulateMenuChoice("2", {"1.5"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
 TEST_F(TUIManagerTest, AddMember_Success) 
 {
     // Setup: Add member to family (family ID 1)
@@ -232,6 +276,50 @@ TEST_F(TUIManagerTest, AddMember_InvalidFamilyId)
     for (const auto& line : output) 
     {
         if (line.find("Invalid family id") != std::string::npos) 
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, AddMember_NegativeFamilyId)
+{
+    // Setup: Try to add member with negative family ID
+    simulateMenuChoice("3", {"-1", "John Doe", "Johnny"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, AddMember_DecimalFamilyId)
+{
+    // Setup: Try to add member with decimal family ID
+    simulateMenuChoice("3", {"1.5", "John Doe", "Johnny"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
         {
             found_error = true;
             break;
@@ -431,6 +519,50 @@ TEST_F(TUIManagerTest, DeleteMultipleMembers_EmptyInput)
     for (const auto& line : output) 
     {
         if (line.find("Invalid input for member ids") != std::string::npos) 
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, DeleteMultipleMembers_DecimalInput)
+{
+    // Setup: Try to delete members where one id is decimal
+    simulateMenuChoice("6", {"1 2 3.5"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole numbers (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("Member ids must be non-negative whole numbers (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, DeleteMultipleMembers_NegativeInput)
+{
+    // Setup: Try to delete members where one id is negative
+    simulateMenuChoice("6", {"1 -2 3"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole numbers (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("Member ids must be non-negative whole numbers (REQ-4, REQ-5)") != std::string::npos)
         {
             found_error = true;
             break;
