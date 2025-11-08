@@ -42,10 +42,9 @@ add_executable(test_tui_manager
 add_executable(test_new_features
     test_bank_import.cpp
     test_commons.cpp
-    test_reader_and_bankreader.cpp
-    test_storage_banklist_and_save_errors.cpp
-    test_homemanager_import_by_id.cpp
-    test_reader_factory_and_homemanager.cpp
+    test_reader.cpp
+    test_net_worth_class.cpp
+    test_bank_account.cpp
 )
 
 target_include_directories(test_storage_manager PRIVATE

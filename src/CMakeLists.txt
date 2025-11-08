@@ -7,12 +7,14 @@ set(LIB_SRC
     storage_manager.cpp
     home_manager.cpp
     reader.cpp
+    bank_account.cpp
     bank_reader.cpp
     canara_bank_reader.cpp
     reader_factory.cpp
     ui_manager.cpp
     tui_manager.cpp
     terminal_io.cpp
+    net_worth.cpp
 )
 
 add_library(home_financials_lib STATIC ${LIB_SRC})

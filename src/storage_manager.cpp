@@ -1,4 +1,5 @@
 #include "storage_manager.hpp"
+#include "bank_account.hpp"
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -1201,7 +1202,7 @@ commons::Result StorageManager::getBankNameById(const uint64_t bank_id, std::str
     return commons::Result::Ok;
 }
 
-commons::Result StorageManager::getBankAccountById(const uint64_t bank_account_id, BankAccountRow* out_row)
+commons::Result StorageManager::getBankAccountById(const uint64_t bank_account_id, BankAccount* out_row)
 {
     if (!out_row)
     {
@@ -1233,14 +1234,53 @@ commons::Result StorageManager::getBankAccountById(const uint64_t bank_account_i
         return commons::Result::NotFound;
     }
 
-    out_row->bank_account_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
-    out_row->bank_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 1));
-    out_row->member_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 2));
+    out_row->setId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)));
+    out_row->setBankId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 1)));
+    out_row->setMemberId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 2)));
     const unsigned char* acct = sqlite3_column_text(stmt, 3);
-    out_row->account_number = acct ? reinterpret_cast<const char*>(acct) : std::string();
-    out_row->opening_balance_paise = static_cast<long long>(sqlite3_column_int64(stmt, 4));
-    out_row->closing_balance_paise = static_cast<long long>(sqlite3_column_int64(stmt, 5));
+    out_row->setAccountNumber(acct ? reinterpret_cast<const char*>(acct) : std::string());
+    out_row->setOpeningBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 4)));
+    out_row->setClosingBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 5)));
 
     sqlite3_finalize(stmt);
     return commons::Result::Ok;
+}
+
+std::vector<BankAccount> StorageManager::listBankAccountsOfMember(const uint64_t member_id)
+{
+    std::vector<BankAccount> rows;
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return rows;
+        }
+    }
+
+    const char* sql = "SELECT BankAccount_ID, Bank_ID, Member_ID, Account_Number, Opening_Balance, Closing_Balance FROM BankAccounts WHERE Member_ID = ? ORDER BY BankAccount_ID;";
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        return rows;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(member_id));
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        BankAccount bankAccount;
+        bankAccount.setId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)));
+        bankAccount.setBankId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 1)));
+        bankAccount.setMemberId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 2)));
+        const unsigned char* acct = sqlite3_column_text(stmt, 3);
+        bankAccount.setAccountNumber(acct ? reinterpret_cast<const char*>(acct) : std::string());
+        bankAccount.setOpeningBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 4)));
+        bankAccount.setClosingBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 5)));
+        rows.push_back(bankAccount);
+    }
+
+    sqlite3_finalize(stmt);
+    return rows;
 }

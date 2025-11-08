@@ -1,5 +1,6 @@
 #include "home_manager.hpp"
 #include "reader_factory.hpp"
+#include "net_worth.hpp"
 
 /**
  * @brief Construct a new HomeManager object
@@ -262,3 +263,26 @@ commons::Result HomeManager::importBankStatement(const std::string &filePath,
 
 	return importBankStatement(filePath, member_id, bank_id, out_bank_account_id);
 }
+
+	commons::Result HomeManager::computeMemberNetWorth(const uint64_t member_id, long long* out_net_worth_paise)
+	{
+		if (!out_net_worth_paise)
+		{
+			return commons::Result::InvalidInput;
+		}
+
+		NetWorth nw(ptr_storage.get());
+		return nw.computeMemberNetWorth(member_id, out_net_worth_paise);
+	}
+
+
+	commons::Result HomeManager::computeFamilyNetWorth(const uint64_t family_id, long long* out_net_worth_paise)
+	{
+		if (!out_net_worth_paise)
+		{
+			return commons::Result::InvalidInput;
+		}
+
+		NetWorth nw(ptr_storage.get());
+		return nw.computeFamilyNetWorth(family_id, out_net_worth_paise);
+	}

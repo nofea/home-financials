@@ -242,9 +242,11 @@ void TUIManager::run()
         io_ptr->printLine(" 5) Delete Member");
         io_ptr->printLine(" 6) Delete Multiple Members");
         io_ptr->printLine(" 7) List Families");
-    io_ptr->printLine(" 8) List Members of a Family");
-    io_ptr->printLine(" 9) Import Bank Statement for a Member");
-    io_ptr->printLine("10) Exit");
+        io_ptr->printLine(" 8) List Members of a Family");
+        io_ptr->printLine(" 9) Import Bank Statement for a Member");
+        io_ptr->printLine("10) Compute Member Net Worth");
+        io_ptr->printLine("11) Compute Family Net Worth");
+        io_ptr->printLine("12) Exit");
         io_ptr->printLine("Choice: ");
 
         std::string line;
@@ -622,6 +624,114 @@ void TUIManager::run()
                 } else {
                     io_ptr->printLine("Bank account imported successfully. ID: " + std::to_string(outBankAccountId));
                 }
+
+                break;
+            }
+
+            case MenuOption::ComputeMemberNetWorth:
+            {
+                io_ptr->printLine("Enter member id to compute net worth: ");
+                std::string midstr;
+                io_ptr->getLine(midstr);
+
+                if (!is_non_negative_whole_number(midstr))
+                {
+                    io_ptr->printLine("Member id must be a non-negative whole number (REQ-4, REQ-5).\nInvalid member id.");
+                    break;
+                }
+
+                uint64_t mid = 0;
+
+                try
+                {
+                    mid = std::stoull(midstr);
+                }
+                catch (...)
+                {
+                    io_ptr->printLine("Invalid member id.");
+                    break;
+                }
+
+                // Compute net worth via HomeManager API
+                long long net_paise = 0;
+                commons::Result res = home_manager.computeMemberNetWorth(mid, &net_paise);
+
+                if (res != commons::Result::Ok)
+                {
+                    showError(res);
+                    break;
+                }
+
+                // Format as rupees.paise (two digits)
+                long long rupees = net_paise / 100;
+                int paise = static_cast<int>(std::llabs(net_paise % 100));
+                std::string sign = net_paise < 0 ? "-" : "";
+                std::ostringstream oss;
+                oss << "Member " << mid << " net worth: " << sign << rupees << ".";
+                
+                if (paise < 10)
+                {
+                    oss << "0" << paise;
+                }
+                else
+                {
+                    oss << paise;
+                }
+                
+                io_ptr->printLine(oss.str());
+
+                break;
+            }
+
+            case MenuOption::ComputeFamilyNetWorth:
+            {
+                io_ptr->printLine("Enter family id to compute net worth: ");
+                std::string fidstr;
+                io_ptr->getLine(fidstr);
+
+                if (!is_non_negative_whole_number(fidstr))
+                {
+                    io_ptr->printLine("Family id must be a non-negative whole number (REQ-4, REQ-5).\nInvalid family id.");
+                    break;
+                }
+
+                uint64_t fid = 0;
+
+                try
+                {
+                    fid = std::stoull(fidstr);
+                }
+                catch (...)
+                {
+                    io_ptr->printLine("Invalid family id.");
+                    break;
+                }
+
+                long long family_paise = 0;
+                commons::Result fres = home_manager.computeFamilyNetWorth(fid, &family_paise);
+
+                if (fres != commons::Result::Ok)
+                {
+                    showError(fres);
+                    break;
+                }
+
+                long long rupees = family_paise / 100;
+                int paise = static_cast<int>(std::llabs(family_paise % 100));
+                std::string sign = family_paise < 0 ? "-" : "";
+                std::ostringstream oss;
+               
+                oss << "Family " << fid << " net worth: " << sign << rupees << ".";
+                if (paise < 10)
+                {
+                    oss << "0" << paise;
+                }
+                else
+                {
+                    oss << paise;
+                }
+
+                io_ptr->printLine(oss.str());
 
                 break;
             }

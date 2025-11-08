@@ -85,21 +85,20 @@ public:
     // when found, NotFound when the id does not exist, or DbError on DB errors.
     commons::Result getBankNameById(const uint64_t bank_id, std::string* out_name);
 
-    // Struct representing a persisted bank-account row
-    struct BankAccountRow
-    {
-        uint64_t bank_account_id{0};
-        uint64_t bank_id{0};
-        uint64_t member_id{0};
-        std::string account_number;
-        long long opening_balance_paise{0};
-        long long closing_balance_paise{0};
-    };
+    // Use the dedicated BankAccount value/type for persisted bank-account rows
+    // (defined in `inc/bank_account.hpp`). The class is fully encapsulated
+    // and exposes getters/setters for its fields.
 
     // Retrieve a bank account row by its BankAccount_ID. Returns Ok and
     // populates out_row on success, NotFound when the id does not exist,
     // or DbError on DB errors.
-    commons::Result getBankAccountById(const uint64_t bank_account_id, BankAccountRow* out_row);
+    commons::Result getBankAccountById(const uint64_t bank_account_id, class BankAccount* out_row);
+
+    // List all bank account rows that belong to a member. Returns an empty
+    // vector on error or when no accounts exist. Prefer using the
+    // Result-returning `getBankAccountById` for single-row access; this is a
+    // convenience helper used by higher-level features like NetWorth.
+    std::vector<BankAccount> listBankAccountsOfMember(const uint64_t member_id);
 
 private:
     // Owned SQLite connection handle (nullptr when not connected)
