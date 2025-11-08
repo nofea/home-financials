@@ -36,6 +36,10 @@ public:
     std::vector<Family> listFamilies();
     std::vector<Member> listMembersOfFamily(const uint64_t family_id);
 
+    // Net worth helpers: compute net worth (in paise) for a member or family.
+    commons::Result computeMemberNetWorth(const uint64_t member_id, long long* out_net_worth_paise);
+    commons::Result computeFamilyNetWorth(const uint64_t family_id, long long* out_net_worth_paise);
+
     // Testing access
     StorageManager* getStorageManager() { return ptr_storage.get(); }
 

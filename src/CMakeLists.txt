@@ -13,6 +13,7 @@ set(LIB_SRC
     ui_manager.cpp
     tui_manager.cpp
     terminal_io.cpp
+    net_worth.cpp
 )
 
 add_library(home_financials_lib STATIC ${LIB_SRC})

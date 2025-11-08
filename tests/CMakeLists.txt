@@ -32,6 +32,7 @@ add_executable(test_storage_manager
 
 add_executable(test_home_manager
     test_home_manager.cpp
+    test_home_manager_networth.cpp
 )
 
 add_executable(test_tui_manager
@@ -46,6 +47,7 @@ add_executable(test_new_features
     test_storage_banklist_and_save_errors.cpp
     test_homemanager_import_by_id.cpp
     test_reader_factory_and_homemanager.cpp
+    test_net_worth.cpp
 )
 
 target_include_directories(test_storage_manager PRIVATE

@@ -1,121 +1,84 @@
 ````instructions
 ## Quick orientation — Home Financials
 
-- Language: C++ (modern C++). Build: CMake (top-level `CMakeLists.txt`) with a project-provided `Makefile` wrapper. Tests: GoogleTest (bundled). Runtime TUI binary: `build/bin/home-financials`.
+- Language: Modern C++ (C++17+). Build uses CMake with a project-provided `Makefile` wrapper. Tests: GoogleTest (bundled).
+- Runtime TUI binary: `build/bin/home-financials`.
 
-## Core architecture — what to read first
+## High-level architecture (what to read first)
 
-- UI: `TUIManager` (`inc/tui_manager.hpp`, `src/tui_manager.cpp`) drives interactive flows; `src/main.cpp` constructs and runs it.
-- Application: `HomeManager` (`inc/home_manager.hpp`, `src/home_manager.cpp`) contains business rules and validation.
-- Persistence: `StorageManager` (`inc/storage_manager.hpp`, `src/storage_manager.cpp`) manages SQLite and the `homefinancials.db` file.
+- UI: `TUIManager` — thin interactive layer (`inc/tui_manager.hpp`, `src/tui_manager.cpp`). `src/main.cpp` boots the TUI.
+- Application domain: `HomeManager` — business rules and validation (`inc/home_manager.hpp`, `src/home_manager.cpp`).
+- Persistence: `StorageManager` — SQLite access and DB file management (`inc/storage_manager.hpp`, `src/storage_manager.cpp`).
 
-Design note: UI is intentionally thin. Business rules live in `HomeManager`; DB access is isolated to `StorageManager` so logic is testable and mockable.
+Design intent: keep UI thin and push logic into `HomeManager`; isolate DB into `StorageManager` so core logic is testable.
 
-Parser layer
-- The project includes a small parser/reader subsystem for importing bank statements. Key points:
-  - `Reader` is the abstract base for file parsers.
-  - `BankReader` extends `Reader` with bank-specific helpers and `BankAccountInfo` extraction.
-  - `ReaderFactory` provides runtime creation: `createByBankName`, `createByBankId`, and `listRegistered()`.
-  - Concrete readers self-register via a small macro in `inc/reader_registration.hpp`. Example:
+## Parser / reader subsystem
 
-    REGISTER_BANK_READER("Canara", CanaraBankReader)
+- `Reader` is the abstract base; `BankReader` adds bank-specific helpers. See `inc/reader.hpp`, `src/reader.cpp`, `inc/bank_reader.hpp`.
+- Factory: `ReaderFactory` provides `createByBankName`, `createByBankId`, `listRegistered()` (`src/reader_factory.cpp`).
+- Registration: concrete readers self-register using `inc/reader_registration.hpp` macro. Example to add a reader:
 
-  - `listRegistered()` returns lowercase canonical keys; format them in the UI if you want prettier names.
+  REGISTER_BANK_READER("MyBank", MyBankReader)
 
-## Project-specific conventions (must-follow)
+  Note: `listRegistered()` returns lowercase canonical keys — format them in the UI if you need prettier names.
 
-- Prefer `*Ex` APIs: `*Ex` methods return `commons::Result` (and often an out-id). Avoid adding new boolean-returning DB helpers.
-- Preserve user-facing strings (tests assert exact messages such as `ID:` or "added successfully").
-- Use dependency injection for I/O: `TUIManager` accepts an `IOInterface`; tests inject `MockIO` (`tests/mock_io.hpp`).
+## Project-specific conventions (short, copyable rules)
 
-Variable naming (must-follow)
+- API style: prefer `*Ex` methods for DB work — they return `commons::Result` and often an out-id. Do not add boolean-returning DB helpers.
+- Tests depend on exact user-facing strings (e.g., lines beginning with `ID:`). Keep those formats stable.
+- I/O is injected: `TUIManager` takes an `IOInterface`; tests use `MockIO` (`tests/mock_io.hpp/.cpp`). Use `MockIO::queueInput()` and assert with `mock->getOutput()` / `getErrors()`.
+- Naming: avoid single-letter variables (`s`, `i`, `c`, `k`). Use descriptive names like `accountNumber`, `transactionDate`, `openingBalancePaise`.
+- Style: Allman braces (opening brace on the next line). Always use braces for `if/for/while`.
 
-- Never declare single-letter variable names such as `s`, `i`, `c`, `k`, etc. Use human-readable names that describe the variable's purpose at the point of declaration. Examples:
-  - `s` -> `str` or `line` or `text`
-  - `i` -> `index` or `pos` or `rowIndex`
-  - `c` -> `character` or `ch`
-  - `k` -> `key` or `columnKey`
+## Code style (must-follow)
 
-- Prefer names that clarify intent (e.g. `accountNumber`, `openingBalancePaise`, `transactionDate`). This improves readability, tests, and code reviews.
+- Single-character variable names are prohibited. Always choose names that reflect usage and intent (e.g. `accountNumber`, `transactionDate`, `openingBalancePaise`). Do not introduce `s`, `i`, `c`, `k` as new names in new or refactored code.
+- Do not implement `if`, `while`, `for`, or `switch` statements on a single line. The following is forbidden:
 
-- Do not rename existing identifiers in older files just to satisfy this rule unless you are updating surrounding code in the same change set — apply the rule to all new or refactored code going forward.
+  if (cond) doSomething();
 
+  Always expand control statements across multiple lines.
+- Always use braces for control blocks and follow Allman style: place the opening brace on the next line and the closing brace on its own line. For example:
 
-## Tests — patterns to follow
+  if (condition)
+  {
+      doSomething();
+  }
 
-## Coding style (must-follow)
+- Require an empty line before and after top-level control blocks (`if`, `while`, `for`, `switch`) to improve readability. Example:
 
-- Always use braces for `if`, `while`, `for`. For example prefer:
+  // some setup
 
-  -
+  if (condition)
+  {
+      doSomething();
+  }
 
-    if (condition)
-    {
-        doSomething();
-    }
+  // follow-up code
 
-- Never write control statements in a single-line form (e.g., `if (cond) doSomething();`). This reduces subtle bugs and improves diff clarity.
+## Build & test (essential commands)
 
-- Always place the opening brace on the next line (Allman style). Closing brace should be on its own line.
+- Preferred workflow (project Makefile wrapper):
 
-These rules help maintain a consistent, easily-reviewable codebase and reduce errors when modifying control-flow blocks.
+  cd /home/sheen/Documents/provinggrounds/home-financials
+  make build      # configures + builds via CMake
+  make test       # builds tests and runs them (prefers test binaries with GTest XML; falls back to ctest)
 
+- Helpful targets: `make configure` (cmake -S . -B build), `make clean` (removes build dir). The Makefile forwards `CMAKE_FLAGS` and defaults to `Release`.
 
-- Tests queue inputs via `MockIO::queueInput()` and call `tui->run()`. They assert outputs with `mock->getOutput()` / `getErrors()`.
-- When adding features that print IDs, keep the `ID:` format so tests can parse created IDs consistently.
+## Common change recipes (examples you will use)
 
-## Build / test (use the project's Makefile)
+- Add a menu action: add enum to `inc/tui_manager.hpp` (`TUIManager::MenuOption`), update `TUIManager::run()` to gather inputs and call a `HomeManager` method, add method to `inc/home_manager.hpp` / `src/home_manager.cpp`, add/extend `StorageManager` `*Ex` APIs if DB is needed, and add a `tests/` case using `MockIO`.
 
-The repo provides a `Makefile` wrapper that calls CMake for you. Prefer these targets to using raw cmake calls:
+- Add a bank reader: create `inc/my_bank_reader.hpp` + `src/my_bank_reader.cpp`, implement `BankReader` helpers, register with `REGISTER_BANK_READER("MyBank", MyBankReader)`, add unit tests that exercise `ReaderFactory` and `HomeManager` import flows.
 
-- Configure & build:
-  make build
+## Files to inspect when debugging or extending
 
-- Run tests (builds first if needed):
-  make test
-
-- Other helpers:
-  make configure   # runs cmake -S . -B build
-  make clean       # removes the build directory
-
-Notes:
-- The Makefile sets `CMAKE_BUILD_TYPE=Release` by default and forwards flags via `CMAKE_FLAGS`.
-- The `test` target prefers running the `test_storage_manager` binary with GTest XML output when present; otherwise it falls back to `ctest --output-on-failure`.
-
-Example reproduce steps (copy/paste):
-
-```bash
-cd /home/sheen/Documents/provinggrounds/home-financials
-make build
-make test
-```
-
-## Common change recipe (add a menu action)
-
-1. Add enum value to `inc/tui_manager.hpp` (`TUIManager::MenuOption`).
-2. Update `TUIManager::run()` to gather inputs and call a `HomeManager` method.
-3. Add the method to `inc/home_manager.hpp` and implement in `src/home_manager.cpp`.
-4. If DB work is required, add/extend a `StorageManager` `*Ex` API in `inc/storage_manager.hpp` / `src/storage_manager.cpp`.
-5. Add a test in `tests/` using `MockIO` following `test_tui_manager.cpp`.
-
-Reader-specific recipe (adding a bank reader)
-1. Implement a concrete `BankReader` in `inc/` and `src/` (e.g. `my_bank_reader.hpp` / `my_bank_reader.cpp`).
-2. Register it using the convenience macro from `inc/reader_registration.hpp`:
-
-   REGISTER_BANK_READER("MyBank", MyBankReader)
-
-3. Add unit tests under `tests/` that exercise parsing and HomeManager import flows.
-4. Run `make test` and iterate until green.
-
-## Integration & files to inspect when debugging
-
-- SQLite DB: `homefinancials.db` in repo root (created by `StorageManager`).
 - UI: `src/tui_manager.cpp`, `inc/tui_manager.hpp`
 - Business: `src/home_manager.cpp`, `inc/home_manager.hpp`
-- Persistence: `src/storage_manager.cpp`, `inc/storage_manager.hpp`
-- Tests/mocks: `tests/test_tui_manager.cpp`, `tests/mock_io.hpp`/`.cpp`
+- Persistence: `src/storage_manager.cpp`, `inc/storage_manager.hpp`; DB file: `homefinancials.db` at repo root
+- Reader subsystem: `inc/reader.hpp`, `inc/bank_reader.hpp`, `inc/reader_registration.hpp`, `src/reader_factory.cpp`
+- Tests & mocks: `tests/mock_io.hpp/.cpp`, `tests/test_tui_manager.cpp`, other tests in `tests/`.
 
-If you'd like CI workflow snippets (GitHub Actions), sanitizer flags, or a PR checklist added here, say which and I'll add them.
-
-````
-
+If you want CI snippets, sanitizer flags, or an automated PR checklist added, tell me which and I will add a short recipe.
+cd /home/sheen/Documents/provinggrounds/home-financials

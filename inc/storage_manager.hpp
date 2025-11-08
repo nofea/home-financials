@@ -101,6 +101,12 @@ public:
     // or DbError on DB errors.
     commons::Result getBankAccountById(const uint64_t bank_account_id, BankAccountRow* out_row);
 
+    // List all bank account rows that belong to a member. Returns an empty
+    // vector on error or when no accounts exist. Prefer using the
+    // Result-returning `getBankAccountById` for single-row access; this is a
+    // convenience helper used by higher-level features like NetWorth.
+    std::vector<BankAccountRow> listBankAccountsOfMember(const uint64_t member_id);
+
 private:
     // Owned SQLite connection handle (nullptr when not connected)
     sqlite3* db_handle{nullptr};

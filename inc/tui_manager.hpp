@@ -30,7 +30,9 @@ public:
         ListFamilies = 7,
         ListMembersOfFamily = 8,
         ImportBankStatement = 9,
-        Exit = 10
+        ComputeMemberNetWorth = 10,
+        ComputeFamilyNetWorth = 11,
+        Exit = 12
     };
 
     commons::Result addFamily(const std::string& name) override;
