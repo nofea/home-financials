@@ -45,7 +45,7 @@ Variable naming (must-follow)
 
 ## Coding style (must-follow)
 
-- Always use braces for `if`, `while`, `for`, and other control statements even when the body is a single line. For example prefer:
+- Always use braces for `if`, `while`, `for`. For example prefer:
 
   -
 
@@ -53,63 +53,6 @@ Variable naming (must-follow)
     {
         doSomething();
     }
-````instructions
-## Quick orientation — Home Financials
-
-- Language: C++ (modern C++). Build: CMake (top-level `CMakeLists.txt`) with a project-provided `Makefile` wrapper. Tests: GoogleTest (bundled). Runtime TUI binary: `build/bin/home-financials`.
-
-## Core architecture — what to read first
-
-- UI: `TUIManager` (`inc/tui_manager.hpp`, `src/tui_manager.cpp`) drives interactive flows; `src/main.cpp` constructs and runs it.
-- Application: `HomeManager` (`inc/home_manager.hpp`, `src/home_manager.cpp`) contains business rules and validation.
-- Persistence: `StorageManager` (`inc/storage_manager.hpp`, `src/storage_manager.cpp`) manages SQLite and the `homefinancials.db` file.
-
-Design note: UI is intentionally thin. Business rules live in `HomeManager`; DB access is isolated to `StorageManager` so logic is testable and mockable.
-
-Parser layer
-- The project includes a small parser/reader subsystem for importing bank statements. Key points:
-  - `Reader` is the abstract base for file parsers.
-  - `BankReader` extends `Reader` with bank-specific helpers and `BankAccountInfo` extraction.
-  - `ReaderFactory` provides runtime creation: `createByBankName`, `createByBankId`, and `listRegistered()`.
-  - Concrete readers self-register via a small macro in `inc/reader_registration.hpp`. Example:
-
-    REGISTER_BANK_READER("Canara", CanaraBankReader)
-
-  - `listRegistered()` returns lowercase canonical keys; format them in the UI if you want prettier names.
-
-## Project-specific conventions (must-follow)
-
-- Prefer `*Ex` APIs: `*Ex` methods return `commons::Result` (and often an out-id). Avoid adding new boolean-returning DB helpers.
-- Preserve user-facing strings (tests assert exact messages such as `ID:` or "added successfully").
-- Use dependency injection for I/O: `TUIManager` accepts an `IOInterface`; tests inject `MockIO` (`tests/mock_io.hpp`).
-
-Variable naming (must-follow)
-
-- Never declare single-letter variable names such as `s`, `i`, `c`, `k`, etc. Use human-readable names that describe the variable's purpose at the point of declaration. Examples:
-  - `s` -> `str` or `line` or `text`
-  - `i` -> `index` or `pos` or `rowIndex`
-  - `c` -> `character` or `ch`
-  - `k` -> `key` or `columnKey`
-
-- Prefer names that clarify intent (e.g. `accountNumber`, `openingBalancePaise`, `transactionDate`). This improves readability, tests, and code reviews.
-
-- Do not rename existing identifiers in older files just to satisfy this rule unless you are updating surrounding code in the same change set — apply the rule to all new or refactored code going forward.
-
-
-## Tests — patterns to follow
-
-## Coding style (must-follow)
-
-- Always use braces for `if`, `while`, `for`, and other control statements even when the body is a single line. For example prefer:
-
-  -
-
-    if (condition)
-    {
-        doSomething();
-    }
-
-  over a single-line form.
 
 - Never write control statements in a single-line form (e.g., `if (cond) doSomething();`). This reduces subtle bugs and improves diff clarity.
 
