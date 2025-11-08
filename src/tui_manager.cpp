@@ -1,4 +1,5 @@
 #include "tui_manager.hpp"
+#include "canara_bank_reader.hpp"
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -240,8 +241,9 @@ void TUIManager::run()
         io_ptr->printLine(" 5) Delete Member");
         io_ptr->printLine(" 6) Delete Multiple Members");
         io_ptr->printLine(" 7) List Families");
-        io_ptr->printLine(" 8) List Members of a Family");
-        io_ptr->printLine(" 9) Exit");
+    io_ptr->printLine(" 8) List Members of a Family");
+    io_ptr->printLine(" 9) Import Bank Statement for a Member");
+    io_ptr->printLine("10) Exit");
         io_ptr->printLine("Choice: ");
 
         std::string line;
@@ -531,6 +533,84 @@ void TUIManager::run()
                 catch (...) 
                 {
                     io_ptr->printLine("Invalid family id.");
+                }
+
+                break;
+            }
+            
+            case MenuOption::ImportBankStatement:
+            {
+                // Flow: ask for member id, bank (id or name), and file path
+                io_ptr->printLine("Enter member id to attach the account to: ");
+                std::string memberIdStr; io_ptr->getLine(memberIdStr);
+
+                if (!is_non_negative_whole_number(memberIdStr))
+                {
+                    io_ptr->printLine("Member id must be a non-negative whole number (REQ-4, REQ-5).");
+                    io_ptr->printLine("Invalid member id.");
+                    break;
+                }
+
+                uint64_t memberId = 0;
+                try {
+                    memberId = std::stoull(memberIdStr);
+                } catch (...) {
+                    io_ptr->printLine("Invalid member id.");
+                    break;
+                }
+
+                io_ptr->printLine("Enter bank id or name (e.g. Canara): ");
+                std::string bankInput; io_ptr->getLine(bankInput);
+                if (bankInput.empty()) {
+                    io_ptr->printLine("Bank id/name cannot be empty.");
+                    break;
+                }
+
+                io_ptr->printLine("Enter path to statement file (CSV): ");
+                std::string path; io_ptr->getLine(path);
+                if (path.empty()) {
+                    io_ptr->printLine("File path cannot be empty.");
+                    break;
+                }
+
+                // Decide whether bankInput is numeric (id) or name
+                bool isNumeric = std::all_of(bankInput.begin(), bankInput.end(), [](unsigned char ch){ return std::isdigit(ch); });
+
+                commons::Result res = commons::Result::InvalidInput;
+                uint64_t outBankAccountId = 0;
+
+                if (isNumeric) {
+                    try {
+                        uint64_t bankId = std::stoull(bankInput);
+                        // Only Canara parser is implemented; check bank name via StorageManager if needed.
+                        // Try to resolve bank id to name and only allow Canara for now.
+                        uint64_t foundBankId = 0;
+                        // We can ask HomeManager's storage for the bank name via getStorageManager
+                        // but that API returns ids; instead we'll attempt to import using Canara parser
+                        CanaraBankReader reader;
+                        res = home_manager.importBankStatement(reader, path, memberId, bankId, &outBankAccountId);
+                    } catch (...) {
+                        io_ptr->printLine("Invalid bank id.");
+                        break;
+                    }
+                } else {
+                    // bankInput treated as name
+                    // Only accept "Canara" (case-insensitive) for now
+                    std::string lowerName = bankInput;
+                    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), [](unsigned char c){ return std::tolower(c); });
+                    if (lowerName == "canara") {
+                        CanaraBankReader reader;
+                        res = home_manager.importBankStatement(reader, path, memberId, std::string("Canara"), &outBankAccountId);
+                    } else {
+                        io_ptr->printLine("Unsupported bank reader for: " + bankInput + ". Only Canara is supported currently.");
+                        break;
+                    }
+                }
+
+                if (res != commons::Result::Ok) {
+                    showError(res);
+                } else {
+                    io_ptr->printLine("Bank account imported successfully. ID: " + std::to_string(outBankAccountId));
                 }
 
                 break;

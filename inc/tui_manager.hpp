@@ -29,7 +29,8 @@ public:
         DeleteMultipleMembers = 6,
         ListFamilies = 7,
         ListMembersOfFamily = 8,
-        Exit = 9
+        ImportBankStatement = 9,
+        Exit = 10
     };
 
     commons::Result addFamily(const std::string& name) override;

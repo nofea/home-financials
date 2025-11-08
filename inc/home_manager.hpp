@@ -2,6 +2,7 @@
 
 #include "commons.hpp"
 #include "storage_manager.hpp"
+#include "bank_reader.hpp"
 #include <memory>
 #include <string>
 #include <cstdint>
@@ -37,6 +38,21 @@ public:
 
     // Testing access
     StorageManager* getStorageManager() { return ptr_storage.get(); }
+
+    // Import a bank statement: parse the file using the provided BankReader
+    // and persist the parsed account row for the given member and bank.
+    // Overloads accept either a numeric bank_id or a bank name string.
+    commons::Result importBankStatement(BankReader &reader,
+                                        const std::string &filePath,
+                                        const uint64_t member_id,
+                                        const uint64_t bank_id,
+                                        uint64_t* out_bank_account_id = nullptr);
+
+    commons::Result importBankStatement(BankReader &reader,
+                                        const std::string &filePath,
+                                        const uint64_t member_id,
+                                        const std::string &bank_name,
+                                        uint64_t* out_bank_account_id = nullptr);
 
 private:
     std::unique_ptr<StorageManager> ptr_storage;

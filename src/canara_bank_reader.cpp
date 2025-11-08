@@ -138,3 +138,17 @@ commons::Result CanaraBankReader::parse(std::istream &in)
 
     return commons::Result::Ok;
 }
+
+std::optional<BankReader::BankAccountInfo> CanaraBankReader::extractAccountInfo() const
+{
+    if (!m_accountNumber || !m_openingPaise || !m_closingPaise)
+    {
+        return std::nullopt;
+    }
+
+    BankReader::BankAccountInfo info;
+    info.accountNumber = *m_accountNumber;
+    info.openingBalancePaise = *m_openingPaise;
+    info.closingBalancePaise = *m_closingPaise;
+    return info;
+}

@@ -189,3 +189,45 @@ std::vector<Member> HomeManager::listMembersOfFamily(const uint64_t family_id)
 {
 	return ptr_storage->listMembersOfFamily(family_id);
 }
+
+// Import a bank statement by parsing the file with the provided reader and
+// persisting the parsed account data.
+commons::Result HomeManager::importBankStatement(BankReader &reader,
+												const std::string &filePath,
+												const uint64_t member_id,
+												const uint64_t bank_id,
+												uint64_t* out_bank_account_id)
+{
+	// Parse the file
+	commons::Result r = reader.parseFile(filePath);
+	if (r != commons::Result::Ok)
+	{
+		return r;
+	}
+
+	// Use the generic extractor to get account info from the reader
+	auto infoOpt = reader.extractAccountInfo();
+	if (!infoOpt)
+	{
+		return commons::Result::InvalidInput;
+	}
+
+	const auto &info = *infoOpt;
+	return ptr_storage->saveBankAccountEx(bank_id, member_id, info.accountNumber, info.openingBalancePaise, info.closingBalancePaise, out_bank_account_id);
+}
+
+// Resolve bank name to id then delegate
+commons::Result HomeManager::importBankStatement(BankReader &reader,
+												const std::string &filePath,
+												const uint64_t member_id,
+												const std::string &bank_name,
+												uint64_t* out_bank_account_id)
+{
+	uint64_t bank_id = 0;
+	auto r = ptr_storage->getBankIdByName(bank_name, &bank_id);
+	if (r != commons::Result::Ok)
+	{
+		return r;
+	}
+	return importBankStatement(reader, filePath, member_id, bank_id, out_bank_account_id);
+}

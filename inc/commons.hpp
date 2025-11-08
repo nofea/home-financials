@@ -25,49 +25,64 @@ namespace commons
     // Returns std::nullopt if the string cannot be parsed.
     inline std::optional<long long> parseMoneyToPaise(const std::string &s)
     {
-        std::string cleaned;
+        std::string filtered;
         bool negative = false;
-        bool seenDot = false;
-        for (char ch : s) 
+
+        for (char ch : s)
         {
-            if (ch == '-') 
+            if (ch == '-')
             {
                 negative = true;
             }
-            
-            if (std::isdigit(static_cast<unsigned char>(ch))) 
+            if (std::isdigit(static_cast<unsigned char>(ch)))
             {
-                cleaned.push_back(ch);
-            } 
-            else if (ch == '.' && !seenDot) 
-            {
-                cleaned.push_back(ch);
-                seenDot = true;
+                filtered.push_back(ch);
             }
-            // ignore all other characters (commas, currency symbols, spaces)
+            else if (ch == '.')
+            {
+                filtered.push_back('.');
+            }
+            // ignore all other characters
         }
 
-        if (cleaned.empty())
+        if (filtered.empty())
         {
             return std::nullopt;
         }
 
-        // Split on dot
-        std::size_t pos = cleaned.find('.');
-        std::string intpart = (pos == std::string::npos) ? cleaned : cleaned.substr(0, pos);
-        std::string frac = (pos == std::string::npos) ? std::string() : cleaned.substr(pos + 1);
+        // If there are multiple dots (for example "Rs.7,43,483.09" has a dot after
+        // the currency symbol and another for the fractional part), treat the
+        // last dot as the decimal separator and remove any earlier dots.
+        std::size_t lastDot = filtered.find_last_of('.');
+        std::string intpart;
+        std::string frac;
 
-        if (intpart.empty())
+        if (lastDot == std::string::npos)
         {
-            intpart = "0";
+            // No decimal point present
+            intpart = filtered;
         }
+        else
+        {
+            // Build intpart by removing any dots before lastDot
+            for (std::size_t i = 0; i < lastDot; ++i)
+            {
+                if (filtered[i] != '.') intpart.push_back(filtered[i]);
+            }
+            // Build fractional part by removing any dots after lastDot (defensive)
+            for (std::size_t i = lastDot + 1; i < filtered.size(); ++i)
+            {
+                if (filtered[i] != '.') frac.push_back(filtered[i]);
+            }
+        }
+
+        if (intpart.empty()) intpart = "0";
 
         // Normalize fractional part to exactly two digits (paise)
         if (frac.size() > 2)
         {
             frac = frac.substr(0, 2);
         }
-
         while (frac.size() < 2)
         {
             frac.push_back('0');
@@ -75,12 +90,12 @@ namespace commons
 
         std::string combined = intpart + frac;
 
-        try 
+        try
         {
             long long value = std::stoll(combined);
             return negative ? -value : value;
-        } 
-        catch (const std::exception &) 
+        }
+        catch (const std::exception &)
         {
             return std::nullopt;
         }

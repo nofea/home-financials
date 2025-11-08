@@ -16,6 +16,9 @@ public:
     std::string bankId() const override { return "canara"; }
     commons::Result parse(std::istream &in) override;
 
+    // BankReader generic accessor
+    std::optional<BankReader::BankAccountInfo> extractAccountInfo() const override;
+
     // Accessors for parsed values. Values are optional until parsing
     // succeeds and the corresponding field is found.
     std::optional<std::string> accountNumber() const { return m_accountNumber; }

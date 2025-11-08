@@ -635,6 +635,109 @@ commons::Result StorageManager::saveMemberDataEx(const Member& member, const uin
 }
 
 /**
+ * @brief Save a parsed bank account row into BankAccounts.
+ *
+ * This validates that the referenced Bank and Member exist, then inserts
+ * the row. Balances are expected in paise (integer cents).
+ */
+commons::Result StorageManager::saveBankAccountEx(uint64_t bank_id,
+                                                 uint64_t member_id,
+                                                 const std::string &account_number,
+                                                 long long opening_paise,
+                                                 long long closing_paise,
+                                                 uint64_t* out_id)
+{
+    if (account_number.empty())
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    // Ensure bank exists
+    const char* bank_check_sql = "SELECT 1 FROM BankList WHERE Bank_ID = ?;";
+    sqlite3_stmt* bank_stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, bank_check_sql, -1, &bank_stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (bank_stmt) sqlite3_finalize(bank_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(bank_stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    ret_code = sqlite3_step(bank_stmt);
+    sqlite3_finalize(bank_stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        return commons::Result::NotFound;
+    }
+
+    // Ensure member exists
+    const char* member_check_sql = "SELECT 1 FROM MemberInfo WHERE Member_ID = ?;";
+    sqlite3_stmt* member_stmt = nullptr;
+    ret_code = sqlite3_prepare_v2(db_handle, member_check_sql, -1, &member_stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (member_stmt) sqlite3_finalize(member_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(member_stmt, 1, static_cast<sqlite3_int64>(member_id));
+    ret_code = sqlite3_step(member_stmt);
+    sqlite3_finalize(member_stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        return commons::Result::NotFound;
+    }
+
+    const char* insert_sql = "INSERT INTO BankAccounts (Bank_ID, Member_ID, Account_Number, Opening_Balance, Closing_Balance) VALUES (?, ?, ?, ?, ?);";
+    sqlite3_stmt* insert_stmt = nullptr;
+    ret_code = sqlite3_prepare_v2(db_handle, insert_sql, -1, &insert_stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (insert_stmt) sqlite3_finalize(insert_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(insert_stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    sqlite3_bind_int64(insert_stmt, 2, static_cast<sqlite3_int64>(member_id));
+    sqlite3_bind_text(insert_stmt, 3, account_number.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(insert_stmt, 4, static_cast<sqlite3_int64>(opening_paise));
+    sqlite3_bind_int64(insert_stmt, 5, static_cast<sqlite3_int64>(closing_paise));
+
+    ret_code = sqlite3_step(insert_stmt);
+    if (ret_code != SQLITE_DONE)
+    {
+        sqlite3_finalize(insert_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_finalize(insert_stmt);
+
+    if (out_id)
+    {
+        *out_id = static_cast<uint64_t>(sqlite3_last_insert_rowid(db_handle));
+    }
+
+    return commons::Result::Ok;
+}
+
+bool StorageManager::saveBankAccount(uint64_t bank_id,
+                                    uint64_t member_id,
+                                    const std::string &account_number,
+                                    long long opening_paise,
+                                    long long closing_paise)
+{
+    return saveBankAccountEx(bank_id, member_id, account_number, opening_paise, closing_paise, nullptr) == commons::Result::Ok;
+}
+
+/**
  * @brief Delete member data.
  * 
  * @param member_id ID of the member to delete.
@@ -1010,4 +1113,81 @@ uint64_t StorageManager::getMemberCount(const uint64_t family_id, bool* out_ok)
 
     if (out_ok) *out_ok = true;
     return static_cast<uint64_t>(cnt);
+}
+
+commons::Result StorageManager::getBankIdByName(const std::string &bank_name, uint64_t* out_bank_id)
+{
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    const char* sql = "SELECT Bank_ID FROM BankList WHERE lower(Bank_Name) = lower(?) LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_text(stmt, 1, bank_name.c_str(), -1, SQLITE_TRANSIENT);
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return commons::Result::NotFound;
+    }
+
+    sqlite3_int64 id = sqlite3_column_int64(stmt, 0);
+    sqlite3_finalize(stmt);
+    if (out_bank_id) *out_bank_id = static_cast<uint64_t>(id);
+    return commons::Result::Ok;
+}
+
+commons::Result StorageManager::getBankAccountById(const uint64_t bank_account_id, BankAccountRow* out_row)
+{
+    if (!out_row)
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    const char* sql = "SELECT BankAccount_ID, Bank_ID, Member_ID, Account_Number, Opening_Balance, Closing_Balance FROM BankAccounts WHERE BankAccount_ID = ? LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(bank_account_id));
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return commons::Result::NotFound;
+    }
+
+    out_row->bank_account_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+    out_row->bank_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 1));
+    out_row->member_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 2));
+    const unsigned char* acct = sqlite3_column_text(stmt, 3);
+    out_row->account_number = acct ? reinterpret_cast<const char*>(acct) : std::string();
+    out_row->opening_balance_paise = static_cast<long long>(sqlite3_column_int64(stmt, 4));
+    out_row->closing_balance_paise = static_cast<long long>(sqlite3_column_int64(stmt, 5));
+
+    sqlite3_finalize(stmt);
+    return commons::Result::Ok;
 }
