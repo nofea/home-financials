@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "test_helpers.hpp"
 #include "home_manager.hpp"
 #include "canara_bank_reader.hpp"
 #include <filesystem>
@@ -6,41 +7,29 @@
 #include <memory>
 
 // Fixture similar to HomeManagerTest but isolated for import tests
-class BankImportTest : public ::testing::Test
+class BankImportTest : public TestDbFixture
 {
 protected:
     void SetUp() override
     {
-        if (std::filesystem::exists(tmp_path))
-        {
-            std::filesystem::remove(tmp_path);
-        }
-        hm = std::make_unique<HomeManager>();
-        auto* storage = hm->getStorageManager();
-        storage->initializeDatabase(tmp_path.string());
+        initHome("bank_import");
     }
 
     void TearDown() override
     {
-        hm.reset();
-        if (std::filesystem::exists(tmp_path))
-        {
-            std::filesystem::remove(tmp_path);
-        }
+        cleanup();
     }
-
-    std::filesystem::path tmp_path{std::filesystem::temp_directory_path() / "homefinancials_import_test.db"};
-    std::unique_ptr<HomeManager> hm;
+    // Use TestDbFixture::home() and tmp_path
 };
 
 TEST_F(BankImportTest, CanaraCsvImportEndToEnd)
 {
     // Setup family and member
     Family f("ImportFamily");
-    ASSERT_EQ(hm->addFamily(f), commons::Result::Ok);
+    ASSERT_EQ(home()->addFamily(f), commons::Result::Ok);
 
     Member m("Alice", "A");
-    ASSERT_EQ(hm->addMemberToFamily(m, 1), commons::Result::Ok);
+    ASSERT_EQ(home()->addMemberToFamily(m, 1), commons::Result::Ok);
 
     // Create a small Canara-like CSV sample
     auto csv_path = std::filesystem::temp_directory_path() / "canara_sample.csv";
@@ -53,13 +42,13 @@ TEST_F(BankImportTest, CanaraCsvImportEndToEnd)
 
     CanaraBankReader reader;
     uint64_t inserted_id = 0;
-    auto res = hm->importBankStatement(reader, csv_path.string(), 1, std::string("Canara"), &inserted_id);
+    auto res = home()->importBankStatement(reader, csv_path.string(), 1, std::string("Canara"), &inserted_id);
     EXPECT_EQ(res, commons::Result::Ok);
     EXPECT_NE(inserted_id, 0u);
 
     // Verify persisted row via StorageManager helper
     StorageManager::BankAccountRow row;
-    auto* storage = hm->getStorageManager();
+    auto* storage = home()->getStorageManager();
     auto gres = storage->getBankAccountById(inserted_id, &row);
     EXPECT_EQ(gres, commons::Result::Ok);
     EXPECT_EQ(row.member_id, 1u);
