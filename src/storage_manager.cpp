@@ -1270,15 +1270,15 @@ std::vector<BankAccount> StorageManager::listBankAccountsOfMember(const uint64_t
 
     while (sqlite3_step(stmt) == SQLITE_ROW)
     {
-    BankAccount r;
-    r.setId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)));
-    r.setBankId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 1)));
-    r.setMemberId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 2)));
-    const unsigned char* acct = sqlite3_column_text(stmt, 3);
-    r.setAccountNumber(acct ? reinterpret_cast<const char*>(acct) : std::string());
-    r.setOpeningBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 4)));
-    r.setClosingBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 5)));
-    rows.push_back(r);
+        BankAccount bankAccount;
+        bankAccount.setId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)));
+        bankAccount.setBankId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 1)));
+        bankAccount.setMemberId(static_cast<uint64_t>(sqlite3_column_int64(stmt, 2)));
+        const unsigned char* acct = sqlite3_column_text(stmt, 3);
+        bankAccount.setAccountNumber(acct ? reinterpret_cast<const char*>(acct) : std::string());
+        bankAccount.setOpeningBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 4)));
+        bankAccount.setClosingBalancePaise(static_cast<long long>(sqlite3_column_int64(stmt, 5)));
+        rows.push_back(bankAccount);
     }
 
     sqlite3_finalize(stmt);
