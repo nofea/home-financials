@@ -44,6 +44,21 @@ public:
     // Listing helpers for UI
     std::vector<Family> listFamilies();
     std::vector<Member> listMembersOfFamily(uint64_t family_id);
+    
+    // Efficient helper: return the current number of members in a family.
+    //
+    // Note on types: SQLite exposes integer results as 64-bit values and many
+    // APIs in this codebase use 64-bit IDs/counts for consistency with the DB
+    // layer. We therefore return a `uint64_t` here to avoid truncation when
+    // reading directly from SQLite. Callers that enforce business rules
+    // (e.g. REQ-3 max 255 members) should validate the returned value and
+    // cast to a narrower type (for example `uint16_t`) once the domain
+    // constraint has been checked.
+    //
+    // The function returns the raw count; if `out_ok` is non-null it will be
+    // set to true on success and false on failure. On failure the returned
+    // value is undefined (0 is returned).
+    uint64_t getMemberCount(const uint64_t family_id, bool* out_ok = nullptr);
 
 private:
     // Owned SQLite connection handle (nullptr when not connected)

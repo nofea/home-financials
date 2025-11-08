@@ -89,6 +89,23 @@ commons::Result HomeManager::deleteFamily(const uint64_t family_id)
  */
 commons::Result HomeManager::addMemberToFamily(const Member &member, const uint64_t family_id)
 {
+	// Fast-path defensive check: enforce REQ-3 (max 255 members) before touching the DB.
+	bool ok = false;
+	uint64_t count = ptr_storage->getMemberCount(family_id, &ok);
+	if (ok)
+	{
+		// Safe cast after validating the business limit. We use uint64_t at
+		// the storage layer to match SQLite's 64-bit results; here we
+		// validate the domain (REQ-3) and then cast to a narrower unsigned
+		// type for local reasoning.
+		if (count >= 255)
+		{
+			return commons::Result::MaxMembersExceeded;
+		}
+		uint16_t members = static_cast<uint16_t>(count); // safe: count < 255
+		(void)members; // keep the variable to document the cast intent
+	}
+
 	uint64_t id = 0;
 	return ptr_storage->saveMemberDataEx(member, family_id, &id);
 }
@@ -103,6 +120,14 @@ commons::Result HomeManager::addMemberToFamily(const Member &member, const uint6
  */
 commons::Result HomeManager::addMemberToFamily(const Member &member, const uint64_t family_id, uint64_t* out_member_id)
 {
+	// Fast-path defensive check: enforce REQ-3 (max 255 members) before touching the DB.
+	bool ok = false;
+	uint64_t count = ptr_storage->getMemberCount(family_id, &ok);
+	if (ok && count >= 255)
+	{
+		return commons::Result::MaxMembersExceeded;
+	}
+
 	return ptr_storage->saveMemberDataEx(member, family_id, out_member_id);
 }
 

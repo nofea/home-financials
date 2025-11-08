@@ -10,8 +10,9 @@ namespace commons
     {
         Ok = 0,
         InvalidInput = 1,
-        NotFound = 2,
-        DbError = 3,
+        MaxMembersExceeded = 2,
+        NotFound = 3,
+        DbError = 4,
     };
     
 } // namespace commons

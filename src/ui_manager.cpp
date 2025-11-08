@@ -46,6 +46,8 @@ std::string UIManager::errorMessage(const commons::Result& res)
 			return "Success.";
 		case commons::Result::InvalidInput:
 			return "Invalid input: please check the data you provided and try again.";
+	        case commons::Result::MaxMembersExceeded:
+	            return "Cannot add member: family has reached the maximum of 255 members.";
 		case commons::Result::NotFound:
 			return "Not found: the requested family/member does not exist.";
 		case commons::Result::DbError:

@@ -533,6 +533,18 @@ commons::Result StorageManager::saveMemberDataEx(const Member& member, const uin
         return commons::Result::NotFound;
     } 
 
+    // Check current number of members in the family to enforce REQ-3 (max 255 members)
+    bool ok = false;
+    uint64_t current_count = getMemberCount(family_id, &ok);
+    if (!ok)
+    {
+        return commons::Result::DbError;
+    }
+    if (current_count >= 255)
+    {
+        return commons::Result::MaxMembersExceeded;
+    }
+
     const char* sql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
     sqlite3_stmt* stmt = nullptr;
     ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
@@ -898,4 +910,47 @@ std::vector<Member> StorageManager::listMembersOfFamily(uint64_t family_id)
     }
     sqlite3_finalize(stmt);
     return members;
+}
+
+uint64_t StorageManager::getMemberCount(const uint64_t family_id, bool* out_ok)
+{
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            if (out_ok) *out_ok = false;
+            return 0;
+        }
+    }
+
+    const char* sql = "SELECT COUNT(1) FROM MemberInfo WHERE Family_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        if (out_ok) *out_ok = false;
+        return 0;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        if (out_ok) *out_ok = false;
+        return 0;
+    }
+
+    sqlite3_int64 cnt = sqlite3_column_int64(stmt, 0);
+    sqlite3_finalize(stmt);
+
+    if (cnt < 0)
+    {
+        if (out_ok) *out_ok = false;
+        return 0;
+    }
+
+    if (out_ok) *out_ok = true;
+    return static_cast<uint64_t>(cnt);
 }

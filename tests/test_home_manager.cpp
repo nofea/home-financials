@@ -125,6 +125,25 @@ TEST_F(HomeManagerTest, AddAndGetMember)
     EXPECT_EQ(hm->addMemberToFamily(invalid, 1), commons::Result::InvalidInput);
 }
 
+TEST_F(HomeManagerTest, AddMember_MaxMembersLimit)
+{
+    // First create a family
+    Family family("LimitTestFamily");
+    ASSERT_EQ(hm->addFamily(family), commons::Result::Ok);
+
+    // Add 255 members (should succeed)
+    for (int i = 0; i < 255; ++i)
+    {
+        Member m(std::string("Member") + std::to_string(i), "");
+        auto res = hm->addMemberToFamily(m, 1);
+        ASSERT_EQ(res, commons::Result::Ok) << "Failed at iteration " << i;
+    }
+
+    // Adding the 256th member should fail with MaxMembersExceeded
+    Member extra("MemberExtra", "");
+    EXPECT_EQ(hm->addMemberToFamily(extra, 1), commons::Result::MaxMembersExceeded);
+}
+
 TEST_F(HomeManagerTest, UpdateMember)
 {
     // Setup: add family and member
