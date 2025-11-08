@@ -1,4 +1,5 @@
 #include "home_manager.hpp"
+#include "reader_factory.hpp"
 
 /**
  * @brief Construct a new HomeManager object
@@ -89,6 +90,22 @@ commons::Result HomeManager::deleteFamily(const uint64_t family_id)
  */
 commons::Result HomeManager::addMemberToFamily(const Member &member, const uint64_t family_id)
 {
+	// Fast-path defensive check: enforce REQ-3 (max 255 members) before touching the DB.
+	bool ok = false;
+	uint64_t count = ptr_storage->getMemberCount(family_id, &ok);
+	if (ok)
+	{
+		// Safe cast after validating the business limit. We use uint64_t at
+		// the storage layer to match SQLite's 64-bit results; here we
+		// validate the domain (REQ-3) and then cast to a narrower unsigned
+		// type for local reasoning.
+		if (count >= 255)
+		{
+			return commons::Result::MaxMembersExceeded;
+		}
+		// At this point count < 255 so casting to a narrower integer type would be safe
+	}
+
 	uint64_t id = 0;
 	return ptr_storage->saveMemberDataEx(member, family_id, &id);
 }
@@ -103,6 +120,14 @@ commons::Result HomeManager::addMemberToFamily(const Member &member, const uint6
  */
 commons::Result HomeManager::addMemberToFamily(const Member &member, const uint64_t family_id, uint64_t* out_member_id)
 {
+	// Fast-path defensive check: enforce REQ-3 (max 255 members) before touching the DB.
+	bool ok = false;
+	uint64_t count = ptr_storage->getMemberCount(family_id, &ok);
+	if (ok && count >= 255)
+	{
+		return commons::Result::MaxMembersExceeded;
+	}
+
 	return ptr_storage->saveMemberDataEx(member, family_id, out_member_id);
 }
 
@@ -163,4 +188,77 @@ std::vector<Family> HomeManager::listFamilies()
 std::vector<Member> HomeManager::listMembersOfFamily(const uint64_t family_id)
 {
 	return ptr_storage->listMembersOfFamily(family_id);
+}
+
+// Import a bank statement by parsing the file with the provided reader and
+// persisting the parsed account data.
+commons::Result HomeManager::importBankStatement(BankReader &reader,
+												const std::string &filePath,
+												const uint64_t member_id,
+												const uint64_t bank_id,
+												uint64_t* out_bank_account_id)
+{
+	// Parse the file
+	commons::Result r = reader.parseFile(filePath);
+	if (r != commons::Result::Ok)
+	{
+		return r;
+	}
+
+	// Use the generic extractor to get account info from the reader
+	auto infoOpt = reader.extractAccountInfo();
+	if (!infoOpt)
+	{
+		return commons::Result::InvalidInput;
+	}
+
+	const auto &info = *infoOpt;
+	return ptr_storage->saveBankAccountEx(bank_id, member_id, info.accountNumber, info.openingBalancePaise, info.closingBalancePaise, out_bank_account_id);
+}
+
+// Resolve bank name to id then delegate
+commons::Result HomeManager::importBankStatement(BankReader &reader,
+												const std::string &filePath,
+												const uint64_t member_id,
+												const std::string &bank_name,
+												uint64_t* out_bank_account_id)
+{
+	uint64_t bank_id = 0;
+	auto r = ptr_storage->getBankIdByName(bank_name, &bank_id);
+	if (r != commons::Result::Ok)
+	{
+		return r;
+	}
+	return importBankStatement(reader, filePath, member_id, bank_id, out_bank_account_id);
+}
+
+// Convenience: create reader via ReaderFactory using bank id and import
+commons::Result HomeManager::importBankStatement(const std::string &filePath,
+												 const uint64_t member_id,
+												 const uint64_t bank_id,
+												 uint64_t* out_bank_account_id)
+{
+	auto reader = ReaderFactory::createByBankId(ptr_storage.get(), bank_id);
+	if (!reader)
+	{
+		return commons::Result::NotFound; // no reader for this bank
+	}
+
+	return importBankStatement(*reader, filePath, member_id, bank_id, out_bank_account_id);
+}
+
+// Convenience: resolve name -> id then use ReaderFactory to create reader
+commons::Result HomeManager::importBankStatement(const std::string &filePath,
+												 const uint64_t member_id,
+												 const std::string &bank_name,
+												 uint64_t* out_bank_account_id)
+{
+	uint64_t bank_id = 0;
+	auto r = ptr_storage->getBankIdByName(bank_name, &bank_id);
+	if (r != commons::Result::Ok)
+	{
+		return r;
+	}
+
+	return importBankStatement(filePath, member_id, bank_id, out_bank_account_id);
 }

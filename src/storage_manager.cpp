@@ -36,6 +36,7 @@ bool StorageManager::initializeDatabase(const std::string& dbPath)
     // placeholder), use it. Otherwise, try to infer project root and use
     // project_root/homefinancials.db
     std::string chosenPath = dbPath;
+
     if (chosenPath.empty() || chosenPath == "path/to/database") 
     {
         namespace fs = std::filesystem;
@@ -53,6 +54,7 @@ bool StorageManager::initializeDatabase(const std::string& dbPath)
         {
             projectRoot = fs::current_path();
         }
+
         fs::path dbPathFs = projectRoot / "homefinancials.db";
         chosenPath = dbPathFs.string();
     }
@@ -113,10 +115,35 @@ void StorageManager::dbInit(const std::string& dbPathStr)
             );
             )"
         }
+        ,
+        {
+            "BankList", R"(
+            CREATE TABLE IF NOT EXISTS BankList (
+            Bank_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Bank_Name TEXT NOT NULL UNIQUE
+            );
+            )"
+        },
+
+        {
+            "BankAccounts", R"(
+            CREATE TABLE IF NOT EXISTS BankAccounts (
+            BankAccount_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Bank_ID INTEGER NOT NULL,
+            Member_ID INTEGER NOT NULL,
+            Account_Number TEXT NOT NULL,
+            Opening_Balance INTEGER NOT NULL,
+            Closing_Balance INTEGER NOT NULL,
+            FOREIGN KEY(Bank_ID) REFERENCES BankList(Bank_ID),
+            FOREIGN KEY(Member_ID) REFERENCES MemberInfo(Member_ID) ON DELETE CASCADE
+            );
+            )"
+        }
     };
 
     sqlite3* db = nullptr;
     int ret_code = sqlite3_open(dbPath.string().c_str(), &db);
+
     if (ret_code != SQLITE_OK) 
     {
         std::cerr << "Cannot open SQLite DB: " << (db ? sqlite3_errmsg(db) : "(no handle)") << std::endl;
@@ -127,6 +154,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
     // Enable foreign key enforcement
     char* errmsg = nullptr;
     ret_code = sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nullptr, nullptr, &errmsg);
+
     if (ret_code != SQLITE_OK) 
     {
         std::cerr << "Failed to enable foreign keys: " << (errmsg ? errmsg : "") << std::endl;
@@ -136,6 +164,7 @@ void StorageManager::dbInit(const std::string& dbPathStr)
     for (const auto &p : table_ddls) 
     {
         ret_code = sqlite3_exec(db, p.second, nullptr, nullptr, &errmsg);
+
         if (ret_code != SQLITE_OK) 
         {
             std::cerr << "Error creating table '" << p.first << "': " << (errmsg ? errmsg : "") << std::endl;
@@ -145,6 +174,49 @@ void StorageManager::dbInit(const std::string& dbPathStr)
         {
             std::cout << "Checked/created table: " << p.first << std::endl;
         }
+    }
+
+    // Prepopulate BankList with known banks if it's empty.
+    const char* countBanksSql = "SELECT COUNT(1) FROM BankList;";
+    sqlite3_stmt* countStmt = nullptr;
+    ret_code = sqlite3_prepare_v2(db, countBanksSql, -1, &countStmt, nullptr);
+
+    if (ret_code == SQLITE_OK)
+    {
+        ret_code = sqlite3_step(countStmt);
+
+        if (ret_code == SQLITE_ROW)
+        {
+            sqlite3_int64 bankCount = sqlite3_column_int64(countStmt, 0);
+            if (bankCount == 0)
+            {
+                const char* insertSql = "INSERT INTO BankList (Bank_Name) VALUES (?);";
+                sqlite3_stmt* insStmt = nullptr;
+                const char* banks[] = {"Canara", "SBI", "Axis", "HDFC", "PNB"};
+
+                for (const char* bn : banks)
+                {
+                    // Ensure stmt pointer does not carry over from previous iteration
+                    insStmt = nullptr;
+                    if (sqlite3_prepare_v2(db, insertSql, -1, &insStmt, nullptr) == SQLITE_OK)
+                    {
+                        sqlite3_bind_text(insStmt, 1, bn, -1, SQLITE_TRANSIENT);
+                        ret_code = sqlite3_step(insStmt);
+                        
+                        if (ret_code != SQLITE_DONE)
+                        {
+                            std::cerr << "Failed to insert bank '" << bn << "': " << sqlite3_errmsg(db) << std::endl;
+                        }
+                        sqlite3_finalize(insStmt);
+                    }
+                    else
+                    {
+                        std::cerr << "Failed to prepare insert for bank '" << bn << "': " << sqlite3_errmsg(db) << std::endl;
+                    }
+                }
+            }
+        }
+        sqlite3_finalize(countStmt);
     }
 
     sqlite3_close(db);
@@ -533,6 +605,18 @@ commons::Result StorageManager::saveMemberDataEx(const Member& member, const uin
         return commons::Result::NotFound;
     } 
 
+    // Check current number of members in the family to enforce REQ-3 (max 255 members)
+    bool ok = false;
+    uint64_t current_count = getMemberCount(family_id, &ok);
+    if (!ok)
+    {
+        return commons::Result::DbError;
+    }
+    if (current_count >= 255)
+    {
+        return commons::Result::MaxMembersExceeded;
+    }
+
     const char* sql = "INSERT INTO MemberInfo (Family_ID, Member_Name, Member_Nick_Name) VALUES (?, ?, ?);";
     sqlite3_stmt* stmt = nullptr;
     ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
@@ -563,6 +647,109 @@ commons::Result StorageManager::saveMemberDataEx(const Member& member, const uin
     } 
 
     return commons::Result::Ok;
+}
+
+/**
+ * @brief Save a parsed bank account row into BankAccounts.
+ *
+ * This validates that the referenced Bank and Member exist, then inserts
+ * the row. Balances are expected in paise (integer cents).
+ */
+commons::Result StorageManager::saveBankAccountEx(uint64_t bank_id,
+                                                 uint64_t member_id,
+                                                 const std::string &account_number,
+                                                 long long opening_paise,
+                                                 long long closing_paise,
+                                                 uint64_t* out_id)
+{
+    if (account_number.empty())
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    // Ensure bank exists
+    const char* bank_check_sql = "SELECT 1 FROM BankList WHERE Bank_ID = ?;";
+    sqlite3_stmt* bank_stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, bank_check_sql, -1, &bank_stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (bank_stmt) sqlite3_finalize(bank_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(bank_stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    ret_code = sqlite3_step(bank_stmt);
+    sqlite3_finalize(bank_stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        return commons::Result::NotFound;
+    }
+
+    // Ensure member exists
+    const char* member_check_sql = "SELECT 1 FROM MemberInfo WHERE Member_ID = ?;";
+    sqlite3_stmt* member_stmt = nullptr;
+    ret_code = sqlite3_prepare_v2(db_handle, member_check_sql, -1, &member_stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (member_stmt) sqlite3_finalize(member_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(member_stmt, 1, static_cast<sqlite3_int64>(member_id));
+    ret_code = sqlite3_step(member_stmt);
+    sqlite3_finalize(member_stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        return commons::Result::NotFound;
+    }
+
+    const char* insert_sql = "INSERT INTO BankAccounts (Bank_ID, Member_ID, Account_Number, Opening_Balance, Closing_Balance) VALUES (?, ?, ?, ?, ?);";
+    sqlite3_stmt* insert_stmt = nullptr;
+    ret_code = sqlite3_prepare_v2(db_handle, insert_sql, -1, &insert_stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (insert_stmt) sqlite3_finalize(insert_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(insert_stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    sqlite3_bind_int64(insert_stmt, 2, static_cast<sqlite3_int64>(member_id));
+    sqlite3_bind_text(insert_stmt, 3, account_number.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(insert_stmt, 4, static_cast<sqlite3_int64>(opening_paise));
+    sqlite3_bind_int64(insert_stmt, 5, static_cast<sqlite3_int64>(closing_paise));
+
+    ret_code = sqlite3_step(insert_stmt);
+    if (ret_code != SQLITE_DONE)
+    {
+        sqlite3_finalize(insert_stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_finalize(insert_stmt);
+
+    if (out_id)
+    {
+        *out_id = static_cast<uint64_t>(sqlite3_last_insert_rowid(db_handle));
+    }
+
+    return commons::Result::Ok;
+}
+
+bool StorageManager::saveBankAccount(uint64_t bank_id,
+                                    uint64_t member_id,
+                                    const std::string &account_number,
+                                    long long opening_paise,
+                                    long long closing_paise)
+{
+    return saveBankAccountEx(bank_id, member_id, account_number, opening_paise, closing_paise, nullptr) == commons::Result::Ok;
 }
 
 /**
@@ -898,4 +1085,162 @@ std::vector<Member> StorageManager::listMembersOfFamily(uint64_t family_id)
     }
     sqlite3_finalize(stmt);
     return members;
+}
+
+uint64_t StorageManager::getMemberCount(const uint64_t family_id, bool* out_ok)
+{
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            if (out_ok) *out_ok = false;
+            return 0;
+        }
+    }
+
+    const char* sql = "SELECT COUNT(1) FROM MemberInfo WHERE Family_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        if (out_ok) *out_ok = false;
+        return 0;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(family_id));
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        if (out_ok) *out_ok = false;
+        return 0;
+    }
+
+    sqlite3_int64 cnt = sqlite3_column_int64(stmt, 0);
+    sqlite3_finalize(stmt);
+
+    if (cnt < 0)
+    {
+        if (out_ok) *out_ok = false;
+        return 0;
+    }
+
+    if (out_ok) *out_ok = true;
+    return static_cast<uint64_t>(cnt);
+}
+
+commons::Result StorageManager::getBankIdByName(const std::string &bank_name, uint64_t* out_bank_id)
+{
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    const char* sql = "SELECT Bank_ID FROM BankList WHERE lower(Bank_Name) = lower(?) LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_text(stmt, 1, bank_name.c_str(), -1, SQLITE_TRANSIENT);
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return commons::Result::NotFound;
+    }
+
+    sqlite3_int64 id = sqlite3_column_int64(stmt, 0);
+    sqlite3_finalize(stmt);
+    if (out_bank_id) *out_bank_id = static_cast<uint64_t>(id);
+    return commons::Result::Ok;
+}
+
+commons::Result StorageManager::getBankNameById(const uint64_t bank_id, std::string* out_name)
+{
+    if (!out_name)
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    const char* sql = "SELECT Bank_Name FROM BankList WHERE Bank_ID = ? LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return commons::Result::NotFound;
+    }
+
+    const unsigned char* txt = sqlite3_column_text(stmt, 0);
+    *out_name = txt ? reinterpret_cast<const char*>(txt) : std::string();
+    sqlite3_finalize(stmt);
+    return commons::Result::Ok;
+}
+
+commons::Result StorageManager::getBankAccountById(const uint64_t bank_account_id, BankAccountRow* out_row)
+{
+    if (!out_row)
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase(""))
+        {
+            return commons::Result::DbError;
+        }
+    }
+
+    const char* sql = "SELECT BankAccount_ID, Bank_ID, Member_ID, Account_Number, Opening_Balance, Closing_Balance FROM BankAccounts WHERE BankAccount_ID = ? LIMIT 1;";
+    sqlite3_stmt* stmt = nullptr;
+    int ret_code = sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr);
+    if (ret_code != SQLITE_OK)
+    {
+        if (stmt) sqlite3_finalize(stmt);
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(bank_account_id));
+    ret_code = sqlite3_step(stmt);
+    if (ret_code != SQLITE_ROW)
+    {
+        sqlite3_finalize(stmt);
+        return commons::Result::NotFound;
+    }
+
+    out_row->bank_account_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+    out_row->bank_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 1));
+    out_row->member_id = static_cast<uint64_t>(sqlite3_column_int64(stmt, 2));
+    const unsigned char* acct = sqlite3_column_text(stmt, 3);
+    out_row->account_number = acct ? reinterpret_cast<const char*>(acct) : std::string();
+    out_row->opening_balance_paise = static_cast<long long>(sqlite3_column_int64(stmt, 4));
+    out_row->closing_balance_paise = static_cast<long long>(sqlite3_column_int64(stmt, 5));
+
+    sqlite3_finalize(stmt);
+    return commons::Result::Ok;
 }

@@ -159,6 +159,50 @@ TEST_F(TUIManagerTest, DeleteFamily_InvalidId)
     EXPECT_TRUE(found_error);
 }
 
+TEST_F(TUIManagerTest, DeleteFamily_NegativeId)
+{
+    // Setup: Try to delete with negative ID
+    simulateMenuChoice("2", {"-1"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, DeleteFamily_DecimalId)
+{
+    // Setup: Try to delete with decimal ID
+    simulateMenuChoice("2", {"1.5"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
 TEST_F(TUIManagerTest, AddMember_Success) 
 {
     // Setup: Add member to family (family ID 1)
@@ -232,6 +276,50 @@ TEST_F(TUIManagerTest, AddMember_InvalidFamilyId)
     for (const auto& line : output) 
     {
         if (line.find("Invalid family id") != std::string::npos) 
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, AddMember_NegativeFamilyId)
+{
+    // Setup: Try to add member with negative family ID
+    simulateMenuChoice("3", {"-1", "John Doe", "Johnny"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, AddMember_DecimalFamilyId)
+{
+    // Setup: Try to add member with decimal family ID
+    simulateMenuChoice("3", {"1.5", "John Doe", "Johnny"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole number (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("must be a non-negative whole number (REQ-4, REQ-5)") != std::string::npos)
         {
             found_error = true;
             break;
@@ -439,6 +527,50 @@ TEST_F(TUIManagerTest, DeleteMultipleMembers_EmptyInput)
     EXPECT_TRUE(found_error);
 }
 
+TEST_F(TUIManagerTest, DeleteMultipleMembers_DecimalInput)
+{
+    // Setup: Try to delete members where one id is decimal
+    simulateMenuChoice("6", {"1 2 3.5"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole numbers (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("Member ids must be non-negative whole numbers (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
+TEST_F(TUIManagerTest, DeleteMultipleMembers_NegativeInput)
+{
+    // Setup: Try to delete members where one id is negative
+    simulateMenuChoice("6", {"1 -2 3"});
+
+    // Run the TUI
+    tui->run();
+
+    // Verify error about non-negative whole numbers (REQ-4, REQ-5)
+    const auto& output = mock_io_ptr->getOutput();
+    bool found_error = false;
+    for (const auto& line : output)
+    {
+        if (line.find("Member ids must be non-negative whole numbers (REQ-4, REQ-5)") != std::string::npos)
+        {
+            found_error = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_error);
+}
+
 TEST_F(TUIManagerTest, NonNumericMenuChoice) 
 {
     // Setup: Provide non-numeric menu choice
@@ -583,6 +715,62 @@ TEST_F(TUIManagerTest, AddMember_DisplaysID)
         }
     }
     EXPECT_TRUE(found_id);
+}
+
+TEST_F(TUIManagerTest, AddMember_MaxMembersExceeded_TUI)
+{
+    // Create a family via TUI addFamily helper (direct call)
+    tui->addFamily("MaxMembersFamily");
+
+    // Extract family ID from output
+    std::string family_id;
+    const auto& output1 = mock_io_ptr->getOutput();
+    for (const auto& line : output1)
+    {
+        if (line.find("MaxMembersFamily") != std::string::npos && line.find("ID:") != std::string::npos)
+        {
+            auto pos = line.find("ID:");
+            if (pos != std::string::npos)
+            {
+                std::string after_id = line.substr(pos + 3);
+                size_t start = after_id.find_first_of("0123456789");
+                if (start != std::string::npos)
+                {
+                    size_t end = after_id.find_first_not_of("0123456789", start);
+                    family_id = after_id.substr(start, end == std::string::npos ? std::string::npos : end - start);
+                }
+                break;
+            }
+        }
+    }
+
+    ASSERT_FALSE(family_id.empty());
+
+    // Add 255 members via direct addMember API on the TUI (which delegates to HomeManager)
+    for (int i = 0; i < 255; ++i)
+    {
+        Member m(std::string("M") + std::to_string(i), "");
+        auto res = tui->addMember(static_cast<uint64_t>(std::stoull(family_id)), m);
+        ASSERT_EQ(res, commons::Result::Ok) << "Failed at iteration " << i;
+    }
+
+    // Attempt to add the 256th member - expect MaxMembersExceeded and an error printed
+    Member extra("ExtraMember", "");
+    auto res = tui->addMember(static_cast<uint64_t>(std::stoull(family_id)), extra);
+    EXPECT_EQ(res, commons::Result::MaxMembersExceeded);
+
+    // Ensure the error message was printed to errors
+    const auto& errors = mock_io_ptr->getErrors();
+    bool found_message = false;
+    for (const auto& e : errors)
+    {
+        if (e.find("Cannot add member: family has reached the maximum of 255 members.") != std::string::npos)
+        {
+            found_message = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(found_message);
 }
 
 TEST_F(TUIManagerTest, ListFamilies_ShowsAll) 
