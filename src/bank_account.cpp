@@ -249,11 +249,11 @@ std::string BankAccount::normalizeAccountNumber(const std::string &raw)
 }
 
 /**
- * @brief Normalize the account number by removing spaces and dashes
+ * @brief Compare two BankAccount objects for equality
  * 
- * @param other BankAccount to compare with
- * @return true 
- * @return false 
+ * @param other Other BankAccount to compare with
+ * @return true If equal
+ * @return false If not equal
  */
 bool BankAccount::operator==(const BankAccount& other) const
 {
@@ -292,11 +292,11 @@ bool BankAccount::operator==(const BankAccount& other) const
 }
 
 /**
- * @brief Normalize the account number by removing spaces and dashes
+ * @brief Compare two BankAccount objects for inequality
  * 
  * @param other Other BankAccount to compare with
- * @return true 
- * @return false 
+ * @return true If not equal
+ * @return false If equal
  */
 bool BankAccount::operator!=(const BankAccount& other) const
 {
