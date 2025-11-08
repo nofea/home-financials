@@ -5,82 +5,155 @@
 #include <algorithm>
 #include <cctype>
 
-
+/**
+ * @brief Construct a new Bank Account:: Bank Account object
+ * 
+ */
 BankAccount::BankAccount() = default;
 
+/**
+ * @brief Construct a new Bank Account:: Bank Account object
+ * 
+ * @param bankAccountId ID of the bank account
+ * @param bankId ID of the bank
+ * @param memberId ID of the member
+ * @param accountNumber Account number
+ * @param openingBalancePaise Opening balance (in paise)
+ * @param closingBalancePaise Closing balance (in paise)
+ */
 BankAccount::BankAccount(uint64_t bankAccountId,
                          uint64_t bankId,
                          uint64_t memberId,
                          const std::string &accountNumber,
                          long long openingBalancePaise,
                          long long closingBalancePaise)
-    : bank_account_id_{bankAccountId},
-      bank_id_{bankId},
-      member_id_{memberId},
-      account_number_{accountNumber},
-      opening_balance_paise_{openingBalancePaise},
-      closing_balance_paise_{closingBalancePaise}
+    : bank_account_id{bankAccountId},
+      bank_id{bankId},
+      member_id{memberId},
+      account_number{accountNumber},
+      opening_balance_paise{openingBalancePaise},
+      closing_balance_paise{closingBalancePaise}
 {
 }
 
+/**
+ * @brief Get the ID of the bank account
+ * 
+ * @return uint64_t 
+ */
 uint64_t BankAccount::getId() const
 {
-    return bank_account_id_;
+    return bank_account_id;
 }
 
+/**
+ * @brief Set the ID of the bank account
+ * 
+ * @param id ID to set
+ */
 void BankAccount::setId(uint64_t id)
 {
-    bank_account_id_ = id;
+    bank_account_id = id;
 }
 
+/**
+ * @brief Get the ID of the bank
+ * 
+ * @return uint64_t 
+ */
 uint64_t BankAccount::getBankId() const
 {
-    return bank_id_;
+    return bank_id;
 }
 
+/**
+ * @brief Set the ID of the bank
+ * 
+ * @param id ID to set
+ */
 void BankAccount::setBankId(uint64_t id)
 {
-    bank_id_ = id;
+    bank_id = id;
 }
 
+/**
+ * @brief Get the ID of the member
+ * 
+ * @return uint64_t 
+ */
 uint64_t BankAccount::getMemberId() const
 {
-    return member_id_;
+    return member_id;
 }
 
+/**
+ * @brief Set the ID of the member
+ * 
+ * @param id ID to set
+ */
 void BankAccount::setMemberId(uint64_t id)
 {
-    member_id_ = id;
+    member_id = id;
 }
 
+/**
+ * @brief Get the Account Number object
+ * 
+ * @return const std::string& 
+ */
 const std::string &BankAccount::getAccountNumber() const
 {
-    return account_number_;
+    return account_number;
 }
 
-void BankAccount::setAccountNumber(const std::string &s)
+/**
+ * @brief Set the Account Number object
+ * 
+ * @param bank_account_str Account number to set
+ */
+void BankAccount::setAccountNumber(const std::string &bank_account_str)
 {
-    account_number_ = s;
+    account_number = bank_account_str;
 }
 
+/**
+ * @brief Get the Opening Balance (in paise)
+ * 
+ * @return long long 
+ */
 long long BankAccount::getOpeningBalancePaise() const
 {
-    return opening_balance_paise_;
+    return opening_balance_paise;
 }
 
-void BankAccount::setOpeningBalancePaise(long long v)
+/**
+ * @brief Set the Opening Balance (in paise)
+ * 
+ * @param opening_balance_paise Opening balance to set
+ */
+void BankAccount::setOpeningBalancePaise(long long opening_balance_paise)
 {
-    opening_balance_paise_ = v;
+    this->opening_balance_paise = opening_balance_paise;
 }
 
+/**
+ * @brief Get the Closing Balance (in paise)
+ * 
+ * @return long long 
+ */
 long long BankAccount::getClosingBalancePaise() const
 {
-    return closing_balance_paise_;
+    return closing_balance_paise;
 }
 
-void BankAccount::setClosingBalancePaise(long long v)
+/**
+ * @brief Set the Closing Balance (in paise)
+ * 
+ * @param closing_balance_paise Closing balance to set
+ */
+void BankAccount::setClosingBalancePaise(long long closing_balance_paise)
 {
-    closing_balance_paise_ = v;
+    this->closing_balance_paise = closing_balance_paise;
 }
 
 BankAccount BankAccount::fromSqliteRow(sqlite3_stmt* stmt, int baseCol)
@@ -99,37 +172,64 @@ BankAccount BankAccount::fromSqliteRow(sqlite3_stmt* stmt, int baseCol)
     long long opening = static_cast<long long>(sqlite3_column_int64(stmt, baseCol + 4));
     long long closing = static_cast<long long>(sqlite3_column_int64(stmt, baseCol + 5));
 
-    BankAccount b(id, bankId, memberId, acct, opening, closing);
-    return b;
+    BankAccount bank_account(id, bankId, memberId, acct, opening, closing);
+    return bank_account;
 }
 
+/**
+ * @brief Get a human-friendly string representation of the bank account
+ * 
+ * @return std::string 
+ */
 std::string BankAccount::toString() const
 {
     std::ostringstream ss;
-    ss << "BankAccount{id=" << bank_account_id_
-       << ", bank_id=" << bank_id_
-       << ", member_id=" << member_id_
-       << ", account='" << account_number_ << "'"
-       << ", opening_paise=" << opening_balance_paise_
-       << ", closing_paise=" << closing_balance_paise_ << "}";
+    ss << "BankAccount{id=" << bank_account_id
+       << ", bank_id=" << bank_id
+       << ", member_id=" << member_id
+       << ", account='" << account_number << "'"
+       << ", opening_paise=" << opening_balance_paise
+       << ", closing_paise=" << closing_balance_paise << "}";
     return ss.str();
 }
 
+/**
+ * @brief Convert paise (integer) to rupees as double
+ * 
+ * @param paise Paise amount
+ * @return double 
+ */
 double BankAccount::paiseToRupees(long long paise)
 {
     return static_cast<double>(paise) / 100.0;
 }
 
+/**
+ * @brief Get the Opening Balance (in rupees)
+ * 
+ * @return double 
+ */
 double BankAccount::getOpeningBalanceRupees() const
 {
-    return paiseToRupees(opening_balance_paise_);
+    return paiseToRupees(opening_balance_paise);
 }
 
+/**
+ * @brief Get the Closing Balance (in rupees)
+ * 
+ * @return double 
+ */
 double BankAccount::getClosingBalanceRupees() const
 {
-    return paiseToRupees(closing_balance_paise_);
+    return paiseToRupees(closing_balance_paise);
 }
 
+/**
+ * @brief Normalize the account number by removing spaces and dashes
+ * 
+ * @param raw String to normalize
+ * @return std::string 
+ */
 std::string BankAccount::normalizeAccountNumber(const std::string &raw)
 {
     std::string out;
@@ -148,35 +248,42 @@ std::string BankAccount::normalizeAccountNumber(const std::string &raw)
     return out;
 }
 
+/**
+ * @brief Normalize the account number by removing spaces and dashes
+ * 
+ * @param other BankAccount to compare with
+ * @return true 
+ * @return false 
+ */
 bool BankAccount::operator==(const BankAccount& other) const
 {
-    if (bank_account_id_ != other.bank_account_id_)
+    if (bank_account_id != other.bank_account_id)
     {
         return false;
     }
 
-    if (bank_id_ != other.bank_id_)
+    if (bank_id != other.bank_id)
     {
         return false;
     }
-    if (member_id_ != other.member_id_)
+    if (member_id != other.member_id)
     {
         return false;
     }
 
     // Compare normalized account numbers
-    if (normalizeAccountNumber(account_number_) != 
-        normalizeAccountNumber(other.account_number_))
+    if (normalizeAccountNumber(account_number) != 
+        normalizeAccountNumber(other.account_number))
     {
         return false;
     }
 
-    if (opening_balance_paise_ != other.opening_balance_paise_)
+    if (opening_balance_paise != other.opening_balance_paise)
     {
         return false;
     }
 
-    if (closing_balance_paise_ != other.closing_balance_paise_)
+    if (closing_balance_paise != other.closing_balance_paise)
     {
         return false;
     }
@@ -184,6 +291,13 @@ bool BankAccount::operator==(const BankAccount& other) const
     return true;
 }
 
+/**
+ * @brief Normalize the account number by removing spaces and dashes
+ * 
+ * @param other Other BankAccount to compare with
+ * @return true 
+ * @return false 
+ */
 bool BankAccount::operator!=(const BankAccount& other) const
 {
     return !(*this == other);

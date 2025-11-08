@@ -60,10 +60,10 @@ public:
     static std::string normalizeAccountNumber(const std::string &raw);
 
 private:
-    uint64_t bank_account_id_{0};
-    uint64_t bank_id_{0};
-    uint64_t member_id_{0};
-    std::string account_number_;
-    long long opening_balance_paise_{0};
-    long long closing_balance_paise_{0};
+    uint64_t bank_account_id{0};
+    uint64_t bank_id{0};
+    uint64_t member_id{0};
+    std::string account_number;
+    long long opening_balance_paise{0};
+    long long closing_balance_paise{0};
 };
