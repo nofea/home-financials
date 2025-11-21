@@ -66,6 +66,13 @@ TEST_F(IntegrationImportTest, ImportStatementsAndComputeFamilyNetWorth)
     EXPECT_EQ(family_paise, 99999900ll + 25000000ll);
 
     // Cleanup temporary files
-    if (std::filesystem::exists(csv1)) std::filesystem::remove(csv1);
-    if (std::filesystem::exists(csv2)) std::filesystem::remove(csv2);
+    if (std::filesystem::exists(csv1))
+    {
+        std::filesystem::remove(csv1);
+    }
+
+    if (std::filesystem::exists(csv2))
+    {
+        std::filesystem::remove(csv2);
+    }
 }

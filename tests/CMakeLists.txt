@@ -39,7 +39,7 @@ add_executable(test_tui_manager
     mock_io.cpp
 )
 
-add_executable(test_new_features
+add_executable(banking_tests
     test_bank_import.cpp
     test_commons.cpp
     test_reader.cpp
@@ -60,7 +60,7 @@ target_include_directories(test_tui_manager PRIVATE
     ${CMAKE_SOURCE_DIR}/inc
 )
 
-target_include_directories(test_new_features PRIVATE
+target_include_directories(banking_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/inc
 )
 
@@ -82,7 +82,7 @@ target_link_libraries(test_tui_manager PRIVATE
     SQLite::SQLite3
 )
 
-target_link_libraries(test_new_features PRIVATE
+target_link_libraries(banking_tests PRIVATE
     ${GTEST_LIB_TARGET}
     home_financials_lib
     SQLite::SQLite3
@@ -92,4 +92,4 @@ include(GoogleTest)
 gtest_discover_tests(test_storage_manager)
 gtest_discover_tests(test_home_manager)
 gtest_discover_tests(test_tui_manager)
-gtest_discover_tests(test_new_features)
+gtest_discover_tests(banking_tests)

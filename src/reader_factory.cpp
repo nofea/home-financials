@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 namespace 
 {
@@ -109,6 +110,7 @@ std::unique_ptr<BankReader> ReaderFactory::createByBankName(const std::string& b
     auto ptr = (it->second)();
     if (!ptr)
     {
+        std::cerr << "error: factory for bank '" << bank_name << "' failed to create a reader instance." << std::endl;
     }
     return ptr;
 }
@@ -129,8 +131,6 @@ std::unique_ptr<BankReader> ReaderFactory::createByBankId(StorageManager* storag
 
     std::string name;
     auto r = storage->getBankNameById(bank_id, &name);
-
-    (void)name; // silence unused variable when diagnostics are disabled
 
     if (r != commons::Result::Ok)
     {
