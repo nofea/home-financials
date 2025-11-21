@@ -1152,6 +1152,7 @@ commons::Result StorageManager::getBankIdByName(const std::string &bank_name, ui
 
     sqlite3_bind_text(stmt, 1, bank_name.c_str(), -1, SQLITE_TRANSIENT);
     ret_code = sqlite3_step(stmt);
+
     if (ret_code != SQLITE_ROW)
     {
         sqlite3_finalize(stmt);
