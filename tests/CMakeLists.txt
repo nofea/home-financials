@@ -45,6 +45,7 @@ add_executable(test_new_features
     test_reader.cpp
     test_net_worth_class.cpp
     test_bank_account.cpp
+    test_integration_import_networth.cpp
 )
 
 target_include_directories(test_storage_manager PRIVATE

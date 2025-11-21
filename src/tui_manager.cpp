@@ -562,6 +562,19 @@ void TUIManager::run()
                     break;
                 }
 
+                // Validate member exists before attempting import to avoid
+                // confusing NotFound errors later and give the user a helpful
+                // message. Use HomeManager's getMember helper which returns
+                // a nullptr when the member id does not exist.
+                {
+                    auto memberPtr = home_manager.getMember(memberId);
+                    if (!memberPtr)
+                    {
+                        io_ptr->printLine("Member id " + std::to_string(memberId) + " not found. Use option 8 (List Members of a Family) to view valid IDs.");
+                        break;
+                    }
+                }
+
                 // Show supported/registered readers to help the user choose
                 auto registeredReaders = ReaderFactory::listRegistered();
                 if (!registeredReaders.empty())

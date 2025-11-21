@@ -106,8 +106,11 @@ std::unique_ptr<BankReader> ReaderFactory::createByBankName(const std::string& b
     {
         return nullptr;
     }
-
-    return (it->second)();
+    auto ptr = (it->second)();
+    if (!ptr)
+    {
+    }
+    return ptr;
 }
 
 /**
@@ -126,6 +129,8 @@ std::unique_ptr<BankReader> ReaderFactory::createByBankId(StorageManager* storag
 
     std::string name;
     auto r = storage->getBankNameById(bank_id, &name);
+
+    (void)name; // silence unused variable when diagnostics are disabled
 
     if (r != commons::Result::Ok)
     {
@@ -156,3 +161,18 @@ std::vector<std::string> ReaderFactory::listRegistered()
 
 // Built-in readers should self-register using the REGISTER_BANK_READER macro
 // defined in `inc/reader_registration.hpp` from their own translation units.
+
+// Defensive registration: some linkers may drop translation units that only
+// contain static registration objects when creating a static archive. To
+// ensure built-in readers are always available at runtime, register a few
+// known readers from this translation unit too. This is idempotent because
+// ReaderFactory::registerReader simply overwrites any existing entry.
+namespace 
+{
+    static bool ensureBuiltInReadersRegistered = []() {
+        // Register Canara reader explicitly so it's available even if the
+        // Canara TU was dropped by the linker.
+        ReaderFactory::registerReader("Canara", [](){ return std::make_unique<CanaraBankReader>(); });
+        return true;
+    }();
+}

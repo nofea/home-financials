@@ -12,9 +12,21 @@ BUILD_DIR ?= build
 CMAKE_BUILD_TYPE ?= Release
 CMAKE_FLAGS ?= -DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE)
 
-.PHONY: all configure build clean reconfigure test valgrind memcheck
+.PHONY: all configure build clean reconfigure test valgrind memcheck help
 
 all: build
+
+help:
+	@echo "Available targets:"
+	@echo "  all          - Build the project (default)."
+	@echo "  configure    - Configure the project using CMake."
+	@echo "  build        - Build the project."
+	@echo "  test         - Run tests."
+	@echo "  valgrind     - Run Valgrind on test binaries."
+	@echo "  memcheck     - Alias for valgrind."
+	@echo "  reconfigure  - Force a re-configuration."
+	@echo "  clean        - Clean build artifacts."
+	@echo "  help         - Show this help message."
 
 configure:
 	@echo "Configuring project (build dir: '$(BUILD_DIR)')..."
