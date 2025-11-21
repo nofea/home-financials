@@ -92,17 +92,17 @@ The Makefile provides several convenient targets:
 
 ### Build Configuration
 
-You can customize the build configuration using environment variables:
+You can customize the build configuration by passing variables to make:
 
 ```bash
-# Build with Debug symbols
+# Build with Debug symbols (default is Release)
 make build CMAKE_BUILD_TYPE=Debug
 
-# Use a different build directory
+# Use a different build directory (default is build)
 make build BUILD_DIR=mybuild
 
 # Pass additional CMake flags
-make build CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=clang++ -DBUILD_TESTS=OFF"
+make build CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=clang++"
 ```
 
 ## Running the Application
