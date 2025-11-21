@@ -25,14 +25,14 @@ Home Financials is a C++ application that helps you manage your household financ
 
 To build and run Home Financials, you need:
 
-- **C++ Compiler**: Supporting C++23 standard (GCC 13+ or Clang 16+)
+- **C++ Compiler**: Modern C++ compiler with C++23 support (GCC 11+, Clang 14+, or equivalent)
 - **CMake**: Version 3.22 or higher
 - **SQLite3**: Development libraries (`libsqlite3-dev` on Debian/Ubuntu)
 - **Make**: For using the convenient Makefile wrapper
 - **Git**: For cloning the repository
 
 Optional for development:
-- **Valgrind**: For memory leak detection (optional, for development)
+- **Valgrind**: For memory leak detection and analysis
 - **GoogleTest**: Automatically downloaded by CMake for building tests
 
 ### Installing Dependencies
@@ -200,7 +200,7 @@ You can customize Valgrind flags:
 make valgrind VALGRIND_FLAGS="--leak-check=full --show-leak-kinds=all --verbose"
 ```
 
-**Note**: Valgrind must be installed on your system for this target to work.
+**Note**: Valgrind is optional but recommended for development. It must be installed on your system if you want to run the memory check targets (`make valgrind` or `make memcheck`).
 
 ## Project Structure
 
