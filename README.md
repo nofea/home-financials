@@ -25,7 +25,7 @@ Home Financials is a C++ application that helps you manage your household financ
 
 To build and run Home Financials, you need:
 
-- **C++ Compiler**: Modern C++ compiler with C++23 support (GCC 11+, Clang 14+, or equivalent)
+- **C++ Compiler**: GCC with C++23 support (GCC 11 or higher)
 - **CMake**: Version 3.22 or higher
 - **SQLite3**: Development libraries (`libsqlite3-dev` on Debian/Ubuntu)
 - **Make**: For using the convenient Makefile wrapper
@@ -95,14 +95,11 @@ The Makefile provides several convenient targets:
 You can customize the build configuration by passing variables to make:
 
 ```bash
-# Build with Debug symbols (default is Release)
-make build CMAKE_BUILD_TYPE=Debug
-
 # Use a different build directory (default is build)
 make build BUILD_DIR=mybuild
 
-# Pass additional CMake flags
-make build CMAKE_FLAGS="-DCMAKE_CXX_COMPILER=clang++"
+# Specify build type (default is Release)
+make build CMAKE_BUILD_TYPE=Debug
 ```
 
 ## Running the Application
