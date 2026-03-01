@@ -53,32 +53,34 @@
 
 **REQ-6.5**: The application must be able to read data from PNB bank account statement.
 
-**REQ-7**: The application must be able to read P&L statement of stock brokers.
+**REQ-7**: The application must provide a way to account for FDs in any of the above described banks
 
-**REQ-8**: The application must be able to read P&L statement of Mutual Fund folios.
+**REQ-8**: The application must be able to read P&L statement of stock brokers.
 
-**REQ-9**: The application must be able to read epf passbook.
+**REQ-9**: The application must be able to read P&L statement of Mutual Fund folios.
+
+**REQ-10**: The application must be able to read epf passbook.
 
 ## Vacancy
 
-**REQ-10**: The data read in [Learning To Read](#learning-to-read) shoule be stored in a locally hosted SQLite database.
+**REQ-11**: The data read in [Learning To Read](#learning-to-read) shoule be stored in a locally hosted SQLite database.
 
-**REQ-11**: While the application is not running, the database must be compressed, and then decopressed only just before use.
+**REQ-12**: While the application is not running, the database must be compressed, and then decopressed only just before use.
 
-**REQ-12**: Stored data older than 1 year should be archived by the database
+**REQ-13**: Stored data older than 1 year should be archived by the database
 
 ## Hide Your Kids, Hide your Wifes
 
-**REQ-13**: All locally stored data must be encrypted and then decryped when retrived.
+**REQ-14**: All locally stored data must be encrypted and then decryped when retrived.
 
-**REQ-14**: All data in transit between the application and database must be encrypted with capability to decrypt on the point of receipt by the application or database.
+**REQ-15**: All data in transit between the application and database must be encrypted with capability to decrypt on the point of receipt by the application or database.
 
 ## Show me the Money
 
-**REQ-15**: Stored data must be displayed in human readable tabular format
+**REQ-16**: Stored data must be displayed in human readable tabular format
 
-**REQ-16**: The application must make provision to display stored data in a Terminal
+**REQ-17**: The application must make provision to display stored data in a Terminal
 
-**REQ-17**: The application must make provision to display stored data in a GUI with good UX.
+**REQ-18**: The application must make provision to display stored data in a GUI with good UX.
 
-**REQ-18**: The application must provide filters on the displayed data, i.e., Weekly/Monthly/Annually data, individual members in a Family, individual families, filter by bank, filter by account number
+**REQ-19**: The application must provide filters on the displayed data, i.e., Weekly/Monthly/Annually data, individual members in a Family, individual families, filter by bank, filter by account number
