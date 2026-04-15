@@ -60,6 +60,20 @@ public:
                          const std::string &account_number,
                          long long opening_paise,
                          long long closing_paise);
+
+    // Persist a Fixed Deposit record.
+    commons::Result saveFDEx(uint64_t bank_id,
+                             uint64_t member_id,
+                             const std::string& fd_number,
+                             long long amount_paise,
+                             uint64_t* out_id = nullptr);
+
+    // Retrieve all FDs for a specific member.
+    struct FDRecord {
+        uint64_t bank_id;
+        long long amount_paise;
+    };
+    std::vector<FDRecord> listFDsOfMember(const uint64_t member_id);
     
     // Efficient helper: return the current number of members in a family.
     //

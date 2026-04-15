@@ -139,6 +139,20 @@ void StorageManager::dbInit(const std::string& dbPathStr)
             FOREIGN KEY(Member_ID) REFERENCES MemberInfo(Member_ID) ON DELETE CASCADE
             );
             )"
+        },
+
+        {
+            "FDs", R"(
+            CREATE TABLE IF NOT EXISTS FDs (
+            FD_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            Bank_ID INTEGER NOT NULL,
+            Member_ID INTEGER NOT NULL,
+            FD_Number TEXT NOT NULL,
+            Amount INTEGER NOT NULL,
+            FOREIGN KEY(Bank_ID) REFERENCES BankList(Bank_ID),
+            FOREIGN KEY(Member_ID) REFERENCES MemberInfo(Member_ID) ON DELETE CASCADE
+            );
+            )"
         }
     };
 
@@ -742,6 +756,80 @@ commons::Result StorageManager::saveBankAccountEx(uint64_t bank_id,
     }
 
     return commons::Result::Ok;
+}
+
+commons::Result StorageManager::saveFDEx(uint64_t bank_id,
+                                         uint64_t member_id,
+                                         const std::string& fd_number,
+                                         long long amount_paise,
+                                         uint64_t* out_id)
+{
+    if (fd_number.empty() || amount_paise < 0)
+    {
+        return commons::Result::InvalidInput;
+    }
+
+    if (!connected)
+    {
+        if (!initializeDatabase("")) return commons::Result::DbError;
+    }
+
+    const char* sql = "INSERT INTO FDs (Bank_ID, Member_ID, FD_Number, Amount) VALUES (?, ?, ?, ?);";
+    sqlite3_stmt* stmt = nullptr;
+    
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) != SQLITE_OK)
+    {
+        return commons::Result::DbError;
+    }
+
+    sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(bank_id));
+    sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(member_id));
+    sqlite3_bind_text(stmt, 3, fd_number.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(amount_paise));
+
+    int ret_code = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+    if (ret_code != SQLITE_DONE)
+    {
+        return commons::Result::DbError;
+    }
+
+    if (out_id)
+    {
+        *out_id = static_cast<uint64_t>(sqlite3_last_insert_rowid(db_handle));
+    }
+
+    return commons::Result::Ok;
+}
+
+std::vector<StorageManager::FDRecord> StorageManager::listFDsOfMember(const uint64_t member_id)
+{
+    std::vector<FDRecord> records;
+
+    if (!connected)
+    {
+        if (!initializeDatabase("")) return records;
+    }
+
+    const char* sql = "SELECT Bank_ID, Amount FROM FDs WHERE Member_ID = ?;";
+    sqlite3_stmt* stmt = nullptr;
+
+    if (sqlite3_prepare_v2(db_handle, sql, -1, &stmt, nullptr) == SQLITE_OK)
+    {
+        sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(member_id));
+
+        while (sqlite3_step(stmt) == SQLITE_ROW)
+        {
+            records.push_back({
+                static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)),
+                static_cast<long long>(sqlite3_column_int64(stmt, 1))
+            });
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    return records;
 }
 
 bool StorageManager::saveBankAccount(uint64_t bank_id,
